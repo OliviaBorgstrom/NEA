@@ -13,7 +13,7 @@ class TabWidget(QDialog):
         self.setWindowIcon(QIcon("gearicon.jpg"))
         self.setGeometry(300,150,700,500) #x,y,width,height
 
-        tabmenu = QTabWidget()
+        tabmenu = QTabWidget(),locations
         tabs = [[homeTab(),"home"],[createTab(),'create'],[importTab(),'import'],[viewTab(),'view']]
         for i in range(len(tabs)):
             tabmenu.addTab(tabs[i][0],tabs[i][1])
@@ -48,43 +48,56 @@ class viewTab(QWidget):
         super().__init__()
         #filters = ['Location','From past:'] if i decide to add more filters
         #to grab Location list use a SELECT query to the database 
-        
-        locations = ["Asda Ellis Way","Beeson Street","Boating Lake","Brighton Slipway","Butt Lane Laceby","Conistone Avenue Shops","Cromwell Road (Leisure Centre)"]
-            #["Weelsby Primary School","Port Health Office, Estuary House, Wharncliffe Road "] #how do i continue onto next line without breaking it
-        #just a dummy list for current testing
-        timeIntervals = ["Year","Quarter","Month","Week"]
-        
-        locationLabel = QLabel('Location:')
-        locationDropDown = QComboBox()  ##put this in a seperate method which takes list and makes a drop down
-        locationDropDown.addItems(locations)
-        
-        timeLabel = QLabel('From the past:')
-        timeIntervalsDropDown = QComboBox()
-        timeIntervalsDropDown.addItems(timeIntervals)
-        
-        #locationDropDown.setEditable(True)  
-        #timeIntervalsDropDown.setEditable(True)
-
-        sideBySide = QGridLayout()
-        sideBySide.addWidget(locationLabel,0,0)
-        sideBySide.addWidget(timeLabel,0,1)
-        sideBySide.addWidget(locationDropDown,1,0)
-        sideBySide.addWidget(timeIntervalsDropDown,1,1)
-
-        filtersGroup = QGroupBox("Filter table results")
-        filtersGroup.setLayout(sideBySide)
-        
-        topWidget = QHBoxLayout()
-        topWidget.addWidget(filtersGroup) 
+        self.topWidget = self.initTopWidget()
         
         bottomWidget = QTableWidget()
         
         viewbox = QVBoxLayout()
-        viewbox.addLayout(topWidget)
+        viewbox.addLayout(self.topWidget)
         viewbox.addWidget(bottomWidget) #add square filters search box in the corner? or QVBoxLayout 
 
         self.setLayout(viewbox)
+    
+    def initTopWidget(self):
+        topWidget = QHBoxLayout()
+        
+        locations = ["Asda Ellis Way","Beeson Street","Boating Lake","Brighton Slipway","Butt Lane Laceby"
+            "Conistone Avenue Shops","Cromwell Road (Leisure Centre)","Weelsby Primary School",
+            "Port Health Office, Estuary House, Wharncliffe Road "]  #just a dummy list for testing
+        timeIntervals = ["Year","Quarter","Month","Week"]
+        filters = [['Location:',locations],['From the past:',timeIntervals]] 
+        print(filters)
+        #list of dropdown labels and the items to include in them
+        filtersGroup = QGroupBox("Filter table results")
+        self.sideBySide = self.CreateGridLayout(filters)
+        
+        filtersGroup.setLayout(self.sideBySide)
+        topWidget.addWidget(filtersGroup)
+        
+        return topWidget
+    
 
+    def CreateGridLayout(self,items):
+        labels = []
+        dropdowns = [] 
+        for i in items:
+            label = QLabel(i[0])
+            labels.append(label) 
+            dropdown = QComboBox()
+            dropdown.addItems(i[1])
+            dropdowns.append(dropdown)
+        
+        sideBySide = QGridLayout()
+        for i in range(len(dropdowns)):
+            sideBySide.addWidget(labels[i],0,i)
+            sideBySide.addWidget(dropdowns[i],1,i)
+        
+        return sideBySide
+        
+             
+
+
+        
 
 app = QApplication(sys.argv)
 mainWindow = TabWidget()
