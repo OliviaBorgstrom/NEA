@@ -13,7 +13,7 @@ class TabWidget(QDialog):
         self.setWindowIcon(QIcon("gearicon.jpg"))
         self.setGeometry(300,150,700,500) #x,y,width,height
 
-        tabmenu = QTabWidget(),locations
+        tabmenu = QTabWidget()
         tabs = [[homeTab(),"home"],[createTab(),'create'],[importTab(),'import'],[viewTab(),'view']]
         for i in range(len(tabs)):
             tabmenu.addTab(tabs[i][0],tabs[i][1])
@@ -94,7 +94,8 @@ class viewTab(QWidget):
         
         return sideBySide
         
-             
+    def initBottomWidget(self):
+        pass
 
 
         
