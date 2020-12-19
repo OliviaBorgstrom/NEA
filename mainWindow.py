@@ -72,7 +72,9 @@ class viewTab(QWidget):
         #to grab Location list use a SELECT query to the database 
         self.topWidget = self.initTopWidget()
         
-        bottomWidget = QTableWidget()
+        bottomWidget = QTableView()
+        #bottomWidget.setColumnCount(5)
+        #bottomWidget.setVerticalHeaderLabels('Date','Location','Glass %','Paper %','Plastic %')
         
         viewbox = QVBoxLayout()
         viewbox.addLayout(self.topWidget)
@@ -83,7 +85,7 @@ class viewTab(QWidget):
     def initTopWidget(self):
         topWidget = QHBoxLayout()
         
-        locations = ["Asda Ellis Way","Beeson Street","Boating Lake","Brighton Slipway","Butt Lane Laceby"
+        locations = ["Asda Ellis Way","Beeson Street","Boating Lake","Brighton Slipway","Butt Lane Laceby",
             "Conistone Avenue Shops","Cromwell Road (Leisure Centre)","Weelsby Primary School",
             "Port Health Office, Estuary House, Wharncliffe Road "]  #just a dummy list for testing
         timeIntervals = ["Year","Quarter","Month","Week"]
