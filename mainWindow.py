@@ -1,6 +1,8 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon
+from PyQt5 import QtCore
 import sys
+import os
 #QApplication, QDialog, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QTableWidget, QLabel, QLineEdit, QPushButton,
 #List of used modules 
 
@@ -30,6 +32,26 @@ class homeTab(QWidget):
     def __init__(self):
         super().__init__()
         homebox = QVBoxLayout()
+        WelcomeLabel = QLabel('Welcome to the NELincs Waste Manager')
+        WelcomeLabel.setStyleSheet("font: bold 20pt AGENTORANGE") 
+        #WelcomeLabel.resize(, 25)
+        WelcomeLabel.setAlignment(QtCore.Qt.AlignCenter)
+        
+        HButtons = QHBoxLayout()
+        Seereports = QPushButton('See past reports')
+        Seereports.clicked.connect(self.openfile) 
+        
+        Gethelp = QPushButton('How to get started?')
+        HButtons.addWidget(Seereports)
+        HButtons.addWidget(Gethelp)
+
+        homebox.addWidget(WelcomeLabel)
+        homebox.addLayout(HButtons)
+        self.setLayout(homebox)
+        
+    def openfile(self):
+        os.system('dolphin /home/livi/NEA/Past_Reports')
+
         
 
 
@@ -66,7 +88,6 @@ class viewTab(QWidget):
             "Port Health Office, Estuary House, Wharncliffe Road "]  #just a dummy list for testing
         timeIntervals = ["Year","Quarter","Month","Week"]
         filters = [['Location:',locations],['From the past:',timeIntervals]] 
-        print(filters)
         #list of dropdown labels and the items to include in them
         filtersGroup = QGroupBox("Filter table results")
         self.sideBySide = self.CreateGridLayout(filters)
