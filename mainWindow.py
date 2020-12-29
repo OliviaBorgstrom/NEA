@@ -61,19 +61,16 @@ class createTab(QWidget):
         super().__init__()
         createbox = QVBoxLayout()
         
-        chooseFromLabel = QLabel("Create a new report by choosing from the following:")
-        chooseFromLabel.setStyleSheet("font: bold 20pt AGENTORANGE") 
-        chooseFromLabel.setAlignment(QtCore.Qt.AlignCenter)
+        chooseFromLabel = QLabel("Create a new report by choosing\nfrom the following:")
+        chooseFromLabel.setStyleSheet("font: 18pt AGENTORANGE") 
+        chooseFromLabel.setAlignment(QtCore.Qt.AlignLeft)
 
-        datesRow = QHBoxLayout()
-        datesLabel = QLabel("Use data from the past:")
-        datesRow.addWidget(datesLabel)
+        datesRow = self.initButtonRow("Use data from the past:",['Week','Month','Quarter','Year'])
 
-        sitesRow = QHBoxLayout()
-        sitesLabel = QLabel("Include:")
-        sitesRow.addWidget(sitesLabel)
+        sitesRow = self.initButtonRow("Include:",['All Sites','Choose ...'])
 
         createButton = QPushButton("Create")
+        createButton.setStyleSheet("font: 10pt AGENTORANGE")
 
         createbox.addWidget(chooseFromLabel)
         createbox.addLayout(datesRow)
@@ -81,6 +78,24 @@ class createTab(QWidget):
         createbox.addWidget(createButton)
 
         self.setLayout(createbox)
+
+    def initButtonRow(self,label,items): #initialises layouts for dates and sites
+        HRow = QHBoxLayout()
+        HRowlabel = QLabel(label)
+        HRowlabel.setStyleSheet("font: 12pt AGENTORANGE")
+        HRowButtons = QButtonGroup()
+        HButtonslayout = QHBoxLayout()
+       
+        for i in range(len(items)):
+            tempbutton = QPushButton(items[i])
+            tempbutton.setStyleSheet("font: 10pt AGENTORANGE")
+            HRowButtons.addButton(tempbutton)
+            HButtonslayout.addWidget(tempbutton)
+        
+        HRow.addWidget(HRowlabel)
+        HRow.addLayout(HButtonslayout)
+        
+        return HRow
 
 class importTab(QWidget):
     def __init__(self):
@@ -144,7 +159,7 @@ class viewTab(QWidget):
 
 
         
-
+#QApplication.setStyle(QtGui.QStyleFactory.create('cleanlooks'))    #work on making the appearance 'cleaner'
 app = QApplication(sys.argv)
 mainWindow = TabWidget()
 mainWindow.show()
