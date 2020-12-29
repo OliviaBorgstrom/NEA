@@ -3,6 +3,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5 import QtCore
 import sys
 import os
+import platform
 #QApplication, QDialog, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QTableWidget, QLabel, QLineEdit, QPushButton,
 #List of used modules 
 
@@ -50,8 +51,10 @@ class homeTab(QWidget):
         self.setLayout(homebox)
         
     def openfile(self):
-        #os.system('dolphin /home/livi/NEA/Past_Reports')
-        os.system(r'explorer.exe C:\Users\Livi\Documents\GitHub\NEA\Past_Reports')
+        if platform.system() == 'Linux':    #for my cross system development 
+            os.system('dolphin /home/livi/NEA/Past_Reports') 
+        else:
+            os.system(r'explorer.exe C:\Users\Livi\Documents\GitHub\NEA\Past_Reports')
 
         
 
