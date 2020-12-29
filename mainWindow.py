@@ -10,12 +10,12 @@ class TabWidget(QDialog):
     
     def __init__(self):
         super().__init__()
-
         self.setWindowTitle("NEL Wastebase")
         self.setWindowIcon(QIcon("gearicon.jpg"))
         self.setGeometry(300,150,700,500) #x,y,width,height
 
         tabmenu = QTabWidget()
+        #tabmenu.setTabsClosable(True)
         tabs = [[homeTab(),"home"],[createTab(),'create'],[importTab(),'import'],[viewTab(),'view']]
         for i in range(len(tabs)):
             tabmenu.addTab(tabs[i][0],tabs[i][1])
@@ -50,7 +50,8 @@ class homeTab(QWidget):
         self.setLayout(homebox)
         
     def openfile(self):
-        os.system('dolphin /home/livi/NEA/Past_Reports')
+        #os.system('dolphin /home/livi/NEA/Past_Reports')
+        os.system(r'explorer.exe C:\Users\Livi\Documents\GitHub\NEA\Past_Reports')
 
         
 
@@ -58,7 +59,28 @@ class homeTab(QWidget):
 class createTab(QWidget):
     def __init__(self):
         super().__init__()
+        createbox = QVBoxLayout()
+        
+        chooseFromLabel = QLabel("Create a new report by choosing from the following:")
+        chooseFromLabel.setStyleSheet("font: bold 20pt AGENTORANGE") 
+        chooseFromLabel.setAlignment(QtCore.Qt.AlignCenter)
 
+        datesRow = QHBoxLayout()
+        datesLabel = QLabel("Use data from the past:")
+        datesRow.addWidget(datesLabel)
+
+        sitesRow = QHBoxLayout()
+        sitesLabel = QLabel("Include:")
+        sitesRow.addWidget(sitesLabel)
+
+        createButton = QPushButton("Create")
+
+        createbox.addWidget(chooseFromLabel)
+        createbox.addLayout(datesRow)
+        createbox.addLayout(sitesRow)
+        createbox.addWidget(createButton)
+
+        self.setLayout(createbox)
 
 class importTab(QWidget):
     def __init__(self):
