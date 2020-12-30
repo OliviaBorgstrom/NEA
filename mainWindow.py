@@ -92,8 +92,12 @@ class createTab(QWidget):
         for i in range(len(items)):
             tempbutton = QPushButton(items[i])
             tempbutton.setStyleSheet("font: 10pt AGENTORANGE")
+            tempbutton.setCheckable(True)
             HRowButtons.addButton(tempbutton)
             HButtonslayout.addWidget(tempbutton)
+        
+        HRowButtons.setExclusive(True)
+        print(HRowButtons)
         
         HRow.addWidget(HRowlabel)
         HRow.addLayout(HButtonslayout)
@@ -102,7 +106,24 @@ class createTab(QWidget):
 
 class importTab(QWidget):
     def __init__(self):
-        super().__init__()
+        super().__init__() 
+        importbox = QVBoxLayout()
+        ImportLabel = QLabel('Choose an option to import your files')
+        ImportLabel.setStyleSheet("font: bold 20pt AGENTORANGE") 
+        #WelcomeLabel.resize(, 25)
+        ImportLabel.setAlignment(QtCore.Qt.AlignCenter)
+        
+        HButtons = QHBoxLayout()
+        fileImport = QPushButton('Import from file')
+        #fileImport.clicked.connect(self.openfile) 
+        
+        fileAuto = QPushButton('Automatically detect to import')
+        HButtons.addWidget(fileImport)
+        HButtons.addWidget(fileAuto)
+
+        importbox.addWidget(ImportLabel)
+        importbox.addLayout(HButtons)
+        self.setLayout(importbox)
 
 
 class viewTab(QWidget):
