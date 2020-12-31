@@ -75,10 +75,10 @@ class createTab(QWidget):
         createButton = QPushButton("Create")
         createButton.setStyleSheet("font: 10pt AGENTORANGE")
 
-        createbox.addWidget(chooseFromLabel)
-        createbox.addLayout(datesRow)
-        createbox.addLayout(sitesRow)
-        createbox.addWidget(createButton)
+        createbox.addWidget(chooseFromLabel,0)
+        createbox.addLayout(datesRow,1)
+        createbox.addLayout(sitesRow,2)
+        createbox.addWidget(createButton,3)
 
         self.setLayout(createbox)
 
@@ -97,7 +97,6 @@ class createTab(QWidget):
             HButtonslayout.addWidget(tempbutton)
         
         HRowButtons.setExclusive(True)
-        print(HRowButtons)
         
         HRow.addWidget(HRowlabel)
         HRow.addLayout(HButtonslayout)
@@ -133,13 +132,11 @@ class viewTab(QWidget):
         #to grab Location list use a SELECT query to the database 
         self.topWidget = self.initTopWidget()
         
-        bottomWidget = QTableView()
-        #bottomWidget.setColumnCount(5)
-        #bottomWidget.setVerticalHeaderLabels('Date','Location','Glass %','Paper %','Plastic %')
+        self.bottomWidget = self.initBottomWidget()
         
         viewbox = QVBoxLayout()
         viewbox.addLayout(self.topWidget)
-        viewbox.addWidget(bottomWidget) #add square filters search box in the corner? or QVBoxLayout 
+        viewbox.addLayout(self.bottomWidget) #add square filters search box in the corner? or QVBoxLayout 
 
         self.setLayout(viewbox)
     
@@ -179,7 +176,24 @@ class viewTab(QWidget):
         return sideBySide
         
     def initBottomWidget(self):
-        pass
+        bottomWidget = QGridLayout()    #set some tooltips?
+        dataTable = QTableWidget()
+    
+        dataTable.setColumnCount(5)
+        dataTable.setRowCount(30)
+        dataTable.setHorizontalHeaderLabels(["Date", "Location", "Glass %", "Paper %", "Plastic %"])
+        dataTable.horizontalHeader().setSectionResizeMode(1)
+        dataTable.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        dataTable.setItem(0, 0, QTableWidgetItem("2020-12-06"))
+        dataTable.setItem(0, 1, QTableWidgetItem("Laceby"))
+        dataTable.setItem(0, 2, QTableWidgetItem("75"))
+        dataTable.setItem
+        
+        dataTable.resizeColumnsToContents()
+        bottomWidget.addWidget(dataTable, 0, 0)
+        
+        return bottomWidget
+        #bottomWidget.setVerticalHeaderLabels('Date','Location','Glass %','Paper %','Plastic %')
 
 
         
