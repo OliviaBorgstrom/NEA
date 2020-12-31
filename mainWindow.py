@@ -1,6 +1,9 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon
+from PyQt5 import QtCore
 import sys
+import os
+import platform
 #QApplication, QDialog, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QTableWidget, QLabel, QLineEdit, QPushButton,
 #List of used modules 
 
@@ -8,12 +11,12 @@ class TabWidget(QDialog):
     
     def __init__(self):
         super().__init__()
-
         self.setWindowTitle("NEL Wastebase")
         self.setWindowIcon(QIcon("gearicon.jpg"))
         self.setGeometry(300,150,700,500) #x,y,width,height
 
         tabmenu = QTabWidget()
+        #tabmenu.setTabsClosable(True)
         tabs = [[homeTab(),"home"],[createTab(),'create'],[importTab(),'import'],[viewTab(),'view']]
         for i in range(len(tabs)):
             tabmenu.addTab(tabs[i][0],tabs[i][1])
@@ -30,17 +33,96 @@ class homeTab(QWidget):
     def __init__(self):
         super().__init__()
         homebox = QVBoxLayout()
+        WelcomeLabel = QLabel('Welcome to the NELincs Waste Manager')
+        WelcomeLabel.setStyleSheet("font: bold 20pt AGENTORANGE") 
+        #WelcomeLabel.resize(, 25)
+        WelcomeLabel.setAlignment(QtCore.Qt.AlignCenter)
+        
+        HButtons = QHBoxLayout()
+        Seereports = QPushButton('See past reports')
+        Seereports.clicked.connect(self.openfile) 
+        
+        Gethelp = QPushButton('How to get started?')
+        HButtons.addWidget(Seereports)
+        HButtons.addWidget(Gethelp)
+
+        homebox.addWidget(WelcomeLabel)
+        homebox.addLayout(HButtons)
+        self.setLayout(homebox)
+        
+    def openfile(self):
+        if platform.system() == 'Linux':    #for my cross system development 
+            os.system('dolphin /home/livi/NEA/Past_Reports') 
+        else:
+            os.system(r'explorer.exe C:\Users\Livi\Documents\GitHub\NEA\Past_Reports')
+
         
 
 
 class createTab(QWidget):
     def __init__(self):
         super().__init__()
+        createbox = QVBoxLayout()
+        
+        chooseFromLabel = QLabel("Create a new report by choosing\nfrom the following:")
+        chooseFromLabel.setStyleSheet("font: 18pt AGENTORANGE") 
+        chooseFromLabel.setAlignment(QtCore.Qt.AlignLeft)
 
+        datesRow = self.initButtonRow("Use data from the past:",['Week','Month','Quarter','Year'])
+
+        sitesRow = self.initButtonRow("Include:",['All Sites','Choose ...'])
+
+        createButton = QPushButton("Create")
+        createButton.setStyleSheet("font: 10pt AGENTORANGE")
+
+        createbox.addWidget(chooseFromLabel,0)
+        createbox.addLayout(datesRow,1)
+        createbox.addLayout(sitesRow,2)
+        createbox.addWidget(createButton,3)
+
+        self.setLayout(createbox)
+
+    def initButtonRow(self,label,items): #initialises layouts for dates and sites
+        HRow = QHBoxLayout()
+        HRowlabel = QLabel(label)
+        HRowlabel.setStyleSheet("font: 12pt AGENTORANGE")
+        HRowButtons = QButtonGroup()
+        HButtonslayout = QHBoxLayout()
+       
+        for i in range(len(items)):
+            tempbutton = QPushButton(items[i])
+            tempbutton.setStyleSheet("font: 10pt AGENTORANGE")
+            tempbutton.setCheckable(True)
+            HRowButtons.addButton(tempbutton)
+            HButtonslayout.addWidget(tempbutton)
+        
+        HRowButtons.setExclusive(True)
+        
+        HRow.addWidget(HRowlabel)
+        HRow.addLayout(HButtonslayout)
+        
+        return HRow
 
 class importTab(QWidget):
     def __init__(self):
-        super().__init__()
+        super().__init__() 
+        importbox = QVBoxLayout()
+        ImportLabel = QLabel('Choose an option to import your files')
+        ImportLabel.setStyleSheet("font: bold 20pt AGENTORANGE") 
+        #WelcomeLabel.resize(, 25)
+        ImportLabel.setAlignment(QtCore.Qt.AlignCenter)
+        
+        HButtons = QHBoxLayout()
+        fileImport = QPushButton('Import from file')
+        #fileImport.clicked.connect(self.openfile) 
+        
+        fileAuto = QPushButton('Automatically detect to import')
+        HButtons.addWidget(fileImport)
+        HButtons.addWidget(fileAuto)
+
+        importbox.addWidget(ImportLabel)
+        importbox.addLayout(HButtons)
+        self.setLayout(importbox)
 
 
 class viewTab(QWidget):
@@ -48,44 +130,74 @@ class viewTab(QWidget):
         super().__init__()
         #filters = ['Location','From past:'] if i decide to add more filters
         #to grab Location list use a SELECT query to the database 
+        self.topWidget = self.initTopWidget()
         
-        locations = ["Asda Ellis Way","Beeson Street","Boating Lake","Brighton Slipway","Butt Lane Laceby","Conistone Avenue Shops","Cromwell Road (Leisure Centre)"]
-            #["Weelsby Primary School","Port Health Office, Estuary House, Wharncliffe Road "] #how do i continue onto next line without breaking it
-        #just a dummy list for current testing
-        timeIntervals = ["Year","Quarter","Month","Week"]
-        
-        locationLabel = QLabel('Location:')
-        locationDropDown = QComboBox()  ##put this in a seperate method which takes list and makes a drop down
-        locationDropDown.addItems(locations)
-        
-        timeLabel = QLabel('From the past:')
-        timeIntervalsDropDown = QComboBox()
-        timeIntervalsDropDown.addItems(timeIntervals)
-        
-        #locationDropDown.setEditable(True)  
-        #timeIntervalsDropDown.setEditable(True)
-
-        sideBySide = QGridLayout()
-        sideBySide.addWidget(locationLabel,0,0)
-        sideBySide.addWidget(timeLabel,0,1)
-        sideBySide.addWidget(locationDropDown,1,0)
-        sideBySide.addWidget(timeIntervalsDropDown,1,1)
-
-        filtersGroup = QGroupBox("Filter table results")
-        filtersGroup.setLayout(sideBySide)
-        
-        topWidget = QHBoxLayout()
-        topWidget.addWidget(filtersGroup) 
-        
-        bottomWidget = QTableWidget()
+        self.bottomWidget = self.initBottomWidget()
         
         viewbox = QVBoxLayout()
-        viewbox.addLayout(topWidget)
-        viewbox.addWidget(bottomWidget) #add square filters search box in the corner? or QVBoxLayout 
+        viewbox.addLayout(self.topWidget)
+        viewbox.addLayout(self.bottomWidget) #add square filters search box in the corner? or QVBoxLayout 
 
         self.setLayout(viewbox)
+    
+    def initTopWidget(self):
+        topWidget = QHBoxLayout()
+        
+        locations = ["Asda Ellis Way","Beeson Street","Boating Lake","Brighton Slipway","Butt Lane Laceby",
+            "Conistone Avenue Shops","Cromwell Road (Leisure Centre)","Weelsby Primary School",
+            "Port Health Office, Estuary House, Wharncliffe Road "]  #just a dummy list for testing
+        timeIntervals = ["Year","Quarter","Month","Week"]
+        filters = [['Location:',locations],['From the past:',timeIntervals]] 
+        #list of dropdown labels and the items to include in them
+        filtersGroup = QGroupBox("Filter table results")
+        self.sideBySide = self.CreateGridLayout(filters)
+        
+        filtersGroup.setLayout(self.sideBySide)
+        topWidget.addWidget(filtersGroup)
+        
+        return topWidget
+    
+
+    def CreateGridLayout(self,items):
+        labels = []
+        dropdowns = [] 
+        for i in items:
+            label = QLabel(i[0])
+            labels.append(label) 
+            dropdown = QComboBox()
+            dropdown.addItems(i[1])
+            dropdowns.append(dropdown)
+        
+        sideBySide = QGridLayout()
+        for i in range(len(dropdowns)):
+            sideBySide.addWidget(labels[i],0,i)
+            sideBySide.addWidget(dropdowns[i],1,i)
+        
+        return sideBySide
+        
+    def initBottomWidget(self):
+        bottomWidget = QGridLayout()    #set some tooltips?
+        dataTable = QTableWidget()
+    
+        dataTable.setColumnCount(5)
+        dataTable.setRowCount(30)
+        dataTable.setHorizontalHeaderLabels(["Date", "Location", "Glass %", "Paper %", "Plastic %"])
+        dataTable.horizontalHeader().setSectionResizeMode(1)
+        dataTable.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        dataTable.setItem(0, 0, QTableWidgetItem("2020-12-06"))
+        dataTable.setItem(0, 1, QTableWidgetItem("Laceby"))
+        dataTable.setItem(0, 2, QTableWidgetItem("75"))
+        dataTable.setItem
+        
+        dataTable.resizeColumnsToContents()
+        bottomWidget.addWidget(dataTable, 0, 0)
+        
+        return bottomWidget
+        #bottomWidget.setVerticalHeaderLabels('Date','Location','Glass %','Paper %','Plastic %')
 
 
+        
+#QApplication.setStyle(QtGui.QStyleFactory.create('cleanlooks'))    #work on making the appearance 'cleaner'
 app = QApplication(sys.argv)
 mainWindow = TabWidget()
 mainWindow.show()
