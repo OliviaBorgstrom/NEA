@@ -1,12 +1,13 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon
 from PyQt5 import QtCore
+from PyQt5 import QtGui
+from Database import fetchLocations,fetchSitedata
 import sys
 import os
 import platform
 #QApplication, QDialog, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QTableWidget, QLabel, QLineEdit, QPushButton,
 #List of used modules 
-
 class TabWidget(QDialog):
     
     def __init__(self):
@@ -130,24 +131,27 @@ class viewTab(QWidget):
         super().__init__()
         #filters = ['Location','From past:'] if i decide to add more filters
         #to grab Location list use a SELECT query to the database 
-        self.topWidget = self.initTopWidget()
+        self.viewbox = QVBoxLayout()
+        self.locations = fetchLocations("Localhost")
+        self.sitedata = fetchSitedata("Localhost")
+        self.sitedata= [(str(site[0]),site[1],str(site[2]),str(site[3]),str(site[4])) for site in self.sitedata] # might not want here
         
+        self.topWidget = self.initTopWidget() 
         self.bottomWidget = self.initBottomWidget()
-        
-        viewbox = QVBoxLayout()
-        viewbox.addLayout(self.topWidget)
-        viewbox.addLayout(self.bottomWidget) #add square filters search box in the corner? or QVBoxLayout 
-
-        self.setLayout(viewbox)
     
+        self.viewbox.addLayout(self.topWidget)
+        self.viewbox.addLayout(self.bottomWidget) #add square filters search box in the corner? or QVBoxLayout 
+
+        self.setLayout(self.viewbox)
+        
     def initTopWidget(self):
         topWidget = QHBoxLayout()
         
-        locations = ["Asda Ellis Way","Beeson Street","Boating Lake","Brighton Slipway","Butt Lane Laceby",
-            "Conistone Avenue Shops","Cromwell Road (Leisure Centre)","Weelsby Primary School",
-            "Port Health Office, Estuary House, Wharncliffe Road "]  #just a dummy list for testing
+        #locations = ["Asda Ellis Way","Beeson Street","Boating Lake","Brighton Slipway","Butt Lane Laceby",
+            #"Conistone Avenue Shops","Cromwell Road (Leisure Centre)","Weelsby Primary School",
+            #"Port Health Office, Estuary House, Wharncliffe Road "]  #just a dummy list for testing
         timeIntervals = ["Year","Quarter","Month","Week"]
-        filters = [['Location:',locations],['From the past:',timeIntervals]] 
+        filters = [['Location:',self.locations],['From the past:',timeIntervals]] 
         #list of dropdown labels and the items to include in them
         filtersGroup = QGroupBox("Filter table results")
         self.sideBySide = self.CreateGridLayout(filters)
@@ -159,14 +163,19 @@ class viewTab(QWidget):
     
 
     def CreateGridLayout(self,items):
+        self.times = QComboBox()
+        self.sites = QComboBox()
+       
         labels = []
-        dropdowns = [] 
-        for i in items:
-            label = QLabel(i[0])
+        dropdowns = [self.sites,self.times] 
+        for i in range(len(items)):
+            label = QLabel(items[i][0])
             labels.append(label) 
-            dropdown = QComboBox()
-            dropdown.addItems(i[1])
-            dropdowns.append(dropdown)
+            dropdowns[i].addItems(items[i][1])
+            #dropdowns[i].currentIndexChanged.connect(self.filterSignal())
+    
+        self.times.currentIndexChanged.connect(self.timeFilterSignal)
+        self.sites.currentIndexChanged.connect(self.siteFilterSignal)
         
         sideBySide = QGridLayout()
         for i in range(len(dropdowns)):
@@ -176,27 +185,45 @@ class viewTab(QWidget):
         return sideBySide
         
     def initBottomWidget(self):
-        bottomWidget = QGridLayout()    #set some tooltips?
-        dataTable = QTableWidget()
+        bottomWidget = QGridLayout()    #set some tooltips, move all inits to self?
+        self.dataTable = QTableWidget()
     
-        dataTable.setColumnCount(5)
-        dataTable.setRowCount(30)
-        dataTable.setHorizontalHeaderLabels(["Date", "Location", "Glass %", "Paper %", "Plastic %"])
-        dataTable.horizontalHeader().setSectionResizeMode(1)
-        dataTable.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        dataTable.setItem(0, 0, QTableWidgetItem("2020-12-06"))
-        dataTable.setItem(0, 1, QTableWidgetItem("Laceby"))
-        dataTable.setItem(0, 2, QTableWidgetItem("75"))
-        dataTable.setItem
-        
-        dataTable.resizeColumnsToContents()
-        bottomWidget.addWidget(dataTable, 0, 0)
+        self.dataTable.setColumnCount(5)
+        self.dataTable.setRowCount(30)
+        self.dataTable.setHorizontalHeaderLabels(["Date", "Location", "Glass %", "Paper %", "Plastic %"])
+        self.dataTable.horizontalHeader().setSectionResizeMode(1)
+        self.dataTable.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.appendToTable(self.sitedata)
+        self.dataTable.resizeColumnsToContents()
+        bottomWidget.addWidget(self.dataTable, 0, 0)
         
         return bottomWidget
-        #bottomWidget.setVerticalHeaderLabels('Date','Location','Glass %','Paper %','Plastic %')
 
+    def appendToTable(self,data):
+        self.dataTable.clearContents()
+        for i in range(len(data)):
+            for j in range(len(data[i])):
+                self.dataTable.setItem(i,j,QTableWidgetItem(data[i][j]))
 
-        
+    def timeFilterSignal(self):
+        print(self.times.currentText(),'has been selected')
+    
+    def siteFilterSignal(self):
+        print(self.sites.currentText(),'has been selected')
+        #filtering = list(map((lambda: self.sites.currentText() in self.sitedata[i]),self.sitedata))
+        filtering = [self.sites.currentText() in entry for entry in self.sitedata]
+        print(filtering)
+        FilteredData = self.generateFilteredData(filtering)
+        self.appendToTable(FilteredData)
+    
+    def generateFilteredData(self,boollist):
+        FilteredData =[]
+        for i in range(len(boollist)):
+            if boollist[i]:
+                FilteredData.append(self.sitedata[i])
+                print(FilteredData)
+        return FilteredData
+            
 #QApplication.setStyle(QtGui.QStyleFactory.create('cleanlooks'))    #work on making the appearance 'cleaner'
 app = QApplication(sys.argv)
 mainWindow = TabWidget()
