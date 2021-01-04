@@ -150,7 +150,8 @@ class viewTab(QWidget):
         #locations = ["Asda Ellis Way","Beeson Street","Boating Lake","Brighton Slipway","Butt Lane Laceby",
             #"Conistone Avenue Shops","Cromwell Road (Leisure Centre)","Weelsby Primary School",
             #"Port Health Office, Estuary House, Wharncliffe Road "]  #just a dummy list for testing
-        timeIntervals = ["Year","Quarter","Month","Week"]
+        timeIntervals = ["All","Year","Quarter","Month","Week"]
+        self.locations.insert(0,'All')
         filters = [['Location:',self.locations],['From the past:',timeIntervals]] 
         #list of dropdown labels and the items to include in them
         filtersGroup = QGroupBox("Filter table results")
@@ -210,11 +211,15 @@ class viewTab(QWidget):
     
     def siteFilterSignal(self):
         print(self.sites.currentText(),'has been selected')
-        #filtering = list(map((lambda: self.sites.currentText() in self.sitedata[i]),self.sitedata))
-        filtering = [self.sites.currentText() in entry for entry in self.sitedata]
-        print(filtering)
-        FilteredData = self.generateFilteredData(filtering)
-        self.appendToTable(FilteredData)
+        if self.sites.currentIndex() == 0:
+            self.appendToTable(self.sitedata)
+        
+        else:
+            #filtering = list(map((lambda: self.sites.currentText() in self.sitedata[i]),self.sitedata))
+            filtering = [self.sites.currentText() in entry for entry in self.sitedata]
+            print(filtering)
+            FilteredData = self.generateFilteredData(filtering)
+            self.appendToTable(FilteredData)
     
     def generateFilteredData(self,boollist):
         FilteredData =[]
@@ -229,3 +234,5 @@ app = QApplication(sys.argv)
 mainWindow = TabWidget()
 mainWindow.show()
 app.exec()
+
+#parameterise database, use filter map reduce 
