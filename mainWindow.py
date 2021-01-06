@@ -3,6 +3,7 @@ from PyQt5.QtGui import QIcon
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 from Database import fetchLocations,fetchSitedata
+from datetime import datetime,timedelta
 import sys
 import os
 import platform
@@ -28,7 +29,6 @@ class TabWidget(QDialog):
         self.setLayout(mainbox)
     
         # mainbox is the encompassing layout for the whole window, the tabs are added to a box.
-
 
 class homeTab(QWidget):
     def __init__(self):
@@ -56,9 +56,6 @@ class homeTab(QWidget):
             os.system('dolphin /home/livi/NEA/Past_Reports') 
         else:
             os.system(r'explorer.exe C:\Users\Livi\Documents\GitHub\NEA\Past_Reports')
-
-        
-
 
 class createTab(QWidget):
     def __init__(self):
@@ -125,17 +122,19 @@ class importTab(QWidget):
         importbox.addLayout(HButtons)
         self.setLayout(importbox)
 
-
 class viewTab(QWidget):
     def __init__(self):
         super().__init__()
         #filters = ['Location','From past:'] if i decide to add more filters
         #to grab Location list use a SELECT query to the database 
         self.viewbox = QVBoxLayout()
-        self.locations = fetchLocations("Localhost")
-        self.sitedata = fetchSitedata("Localhost")
-        self.sitedata= [(str(site[0]),site[1],str(site[2]),str(site[3]),str(site[4])) for site in self.sitedata] # might not want here
         
+        self.locations = fetchLocations("Localhost")
+        self.rawsitedata = fetchSitedata("Localhost") #might changefrom rawsitedata
+        
+        self.sitedata= [(str(site[0]),site[1],str(site[2]),str(site[3]),str(site[4])) for site in self.rawsitedata] # might not want here
+        self.currentTableData = self.sitedata
+
         self.topWidget = self.initTopWidget() 
         self.bottomWidget = self.initBottomWidget()
     
@@ -150,7 +149,7 @@ class viewTab(QWidget):
         #locations = ["Asda Ellis Way","Beeson Street","Boating Lake","Brighton Slipway","Butt Lane Laceby",
             #"Conistone Avenue Shops","Cromwell Road (Leisure Centre)","Weelsby Primary School",
             #"Port Health Office, Estuary House, Wharncliffe Road "]  #just a dummy list for testing
-        timeIntervals = ["All","Year","Quarter","Month","Week"]
+        timeIntervals = ["All","This Year","This Quarter","This Month","Past 7 Days"]
         self.locations.insert(0,'All')
         filters = [['Location:',self.locations],['From the past:',timeIntervals]] 
         #list of dropdown labels and the items to include in them
@@ -205,28 +204,87 @@ class viewTab(QWidget):
         for i in range(len(data)):
             for j in range(len(data[i])):
                 self.dataTable.setItem(i,j,QTableWidgetItem(data[i][j]))
+        self.setCurrentTableData(data)
 
-    def timeFilterSignal(self):
+    
+    def setCurrentTableData(self, data):
+        self.currentTableData = data
+
+    def timeFilterSignal(self): #this year, past 7 days, this month, *this quarter*
         print(self.times.currentText(),'has been selected')
+        self.thismonth = datetime.today().replace(day=1,hour = 0, minute= 0, second= 0, microsecond= 0)
+        self.sevendaysago = (datetime.today()-timedelta(days= 7)).replace(hour = 0, minute= 0, second= 0, microsecond= 0)
+        self.thisyear = datetime.today().replace(day=1,month=1,hour = 0, minute= 0, second= 0, microsecond= 0)
+  
+        if self.times.currentIndex() == 0:
     
-    def siteFilterSignal(self):
-        print(self.sites.currentText(),'has been selected')
-        if self.sites.currentIndex() == 0:
-            self.appendToTable(self.sitedata)
-        
+            #print(self.sites.currentIndex())
+            if self.sites.currentIndex() != 0 :
+                filtering = [self.sites.currentText() in entry for entry in self.sitedata]
+                FilteredData = self.generateFilteredData(filtering,self.sitedata)
+                self.appendToTable(FilteredData)
+       
+            else:
+                self.appendToTable(self.sitedata)
+       
         else:
-            #filtering = list(map((lambda: self.sites.currentText() in self.sitedata[i]),self.sitedata))
-            filtering = [self.sites.currentText() in entry for entry in self.sitedata]
-            print(filtering)
-            FilteredData = self.generateFilteredData(filtering)
+            if self.currentTableData != self.sitedata: #checking if a site filter is applied
+                print(self.timeSwitcher())
+                filtering = [self.timeSwitcher() <= datetime.strptime(self.currentTableData[i][0], '%Y-%m-%d') for i in range(len(self.currentTableData))]
+                FilteredData = self.generateFilteredData(filtering,self.currentTableData)
+            else: #if no site filter applied
+                print(self.timeSwitcher())
+                filtering = [self.timeSwitcher() <= datetime.strptime(self.sitedata[i][0], '%Y-%m-%d') for i in range(len(self.currentTableData))]
+                FilteredData = self.generateFilteredData(filtering,self.currentTableData)
+            
             self.appendToTable(FilteredData)
+       
+            #date = self.currentTableData[0][0]
+            #datetimeobj = datetime.strptime(date, '%Y-%m-%d')
+
+
+    def timeSwitcher(self):
+        currenttext = self.times.currentText()
+        switcher= {
+            'This Year':self.thisyear,
+            'Past 7 Days':self.sevendaysago,
+            'This Month': self.thismonth
+        }
+        return switcher.get(currenttext,'Error: unknown time frame')
+
+
+    def siteFilterSignal(self): #Lots of if statements, could implement a case, need a current filters applied thing
+        print(self.sites.currentText(),'has been selected')
+        print(self.sites.currentIndex())
+        if self.sites.currentIndex() == 0:
+            if self.times.currentIndex() != 0 :
+                filtering = [self.timeSwitcher() <= datetime.strptime(self.currentTableData[i][0], '%Y-%m-%d') for i in range(len(self.currentTableData))]
+                FilteredData = self.generateFilteredData(filtering,self.currentTableData)
+                self.appendToTable(FilteredData)
     
-    def generateFilteredData(self,boollist):
+            else:
+                self.appendToTable(self.sitedata)
+            
+        else:
+            if self.times.currentIndex() != 0:
+                filtering = [self.sites.currentText() in entry for entry in self.currentTableData] #check if there is another filter applies
+                FilteredData = self.generateFilteredData(filtering,self.currentTableData)
+                #break
+            else:
+                #filtering = list(map((lambda: self.sites.currentText() in self.sitedata[i]),self.sitedata))
+                filtering = [self.sites.currentText() in entry for entry in self.sitedata]
+                FilteredData = self.generateFilteredData(filtering,self.sitedata)
+                #print(filtering)
+            
+            self.appendToTable(FilteredData)
+
+    
+    def generateFilteredData(self,boollist,current):
         FilteredData =[]
         for i in range(len(boollist)):
             if boollist[i]:
-                FilteredData.append(self.sitedata[i])
-                print(FilteredData)
+                FilteredData.append(current[i])
+                #print(FilteredData)
         return FilteredData
             
 #QApplication.setStyle(QtGui.QStyleFactory.create('cleanlooks'))    #work on making the appearance 'cleaner'
@@ -235,4 +293,8 @@ mainWindow = TabWidget()
 mainWindow.show()
 app.exec()
 
-#parameterise database, use filter map reduce 
+#parameterise database, use filter map reduce, improve filtering method so that it isnt linear (need better time complexity)
+#date filter is buggy
+#location set to ALL when a time is set does not work 
+#setting the date FIRST and then setting a location filer doesnt work either
+#rework filters to be a stack
