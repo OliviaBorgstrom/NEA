@@ -9,6 +9,35 @@ import os
 import platform
 #QApplication, QDialog, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QTableWidget, QLabel, QLineEdit, QPushButton,
 #List of used modules 
+
+class stack(object):
+    def __init__(self):
+        self.pointer = -1
+        self.body = []
+        
+    def push(self,data):
+        self.body.append(data)
+        self.pointer+= 1
+
+    def pop(self,data):
+        self.body.pop(pointer)
+        self.pointer-=1
+
+    def topitem(self):
+        return self.body[self.pointer]
+    
+    def isEmpty(self):
+        return self.body == []
+    
+    def __len__(self):
+        return len(self.body)
+
+    def __str__(self):
+        return (str(self.body))[1:-1].replace(" ","")
+
+    def getcurrentpointer(self):
+        return self.pointer
+    
 class TabWidget(QDialog):
     
     def __init__(self):
@@ -128,6 +157,7 @@ class viewTab(QWidget):
         #filters = ['Location','From past:'] if i decide to add more filters
         #to grab Location list use a SELECT query to the database 
         self.viewbox = QVBoxLayout()
+        self.fstack = stack() #a stack for currently applied filters
         
         self.locations = fetchLocations("Localhost")
         self.rawsitedata = fetchSitedata("Localhost") #might changefrom rawsitedata
@@ -151,10 +181,10 @@ class viewTab(QWidget):
             #"Port Health Office, Estuary House, Wharncliffe Road "]  #just a dummy list for testing
         timeIntervals = ["All","This Year","This Quarter","This Month","Past 7 Days"]
         self.locations.insert(0,'All')
-        filters = [['Location:',self.locations],['From the past:',timeIntervals]] 
+        self.filters = [['Location:',self.locations],['From the past:',timeIntervals]] 
         #list of dropdown labels and the items to include in them
         filtersGroup = QGroupBox("Filter table results")
-        self.sideBySide = self.CreateGridLayout(filters)
+        self.sideBySide = self.CreateGridLayout(self.filters)
         
         filtersGroup.setLayout(self.sideBySide)
         topWidget.addWidget(filtersGroup)
@@ -174,8 +204,8 @@ class viewTab(QWidget):
             dropdowns[i].addItems(items[i][1])
             #dropdowns[i].currentIndexChanged.connect(self.filterSignal())
     
-        self.times.currentIndexChanged.connect(self.timeFilterSignal)
-        self.sites.currentIndexChanged.connect(self.siteFilterSignal)
+        self.times.currentIndexChanged.connect(self.timeFilterSignal) ''''''''
+        self.sites.currentIndexChanged.connect(self.siteFilterSignal)''''''''
         
         sideBySide = QGridLayout()
         for i in range(len(dropdowns)):
@@ -254,6 +284,7 @@ class viewTab(QWidget):
 
 
     def siteFilterSignal(self): #Lots of if statements, could implement a case, need a current filters applied thing
+        pass
         print(self.sites.currentText(),'has been selected')
         print(self.sites.currentIndex())
         if self.sites.currentIndex() == 0:
@@ -279,13 +310,29 @@ class viewTab(QWidget):
             self.appendToTable(FilteredData)
 
     
-    def generateFilteredData(self,boollist,current):
+    def generateFilteredData(self,boollist,current): #change this to include type
         FilteredData =[]
         for i in range(len(boollist)):
             if boollist[i]:
                 FilteredData.append(current[i])
                 #print(FilteredData)
         return FilteredData
+
+    #def applyFilter(type):
+        #if fstack.isEmpty():
+            #generateFilteredData(self.sitedata,type)
+        #else:
+            #if len(fstack) == 2 AND NOT type IN fstack.topitem(): #find how to check that the top item is not from the same filter as the new one
+                #temp = fstack.topitem()
+                #fstack.pop()
+                #if self.type.currentText == 'All': 
+                    #fstack.push(temp)
+                    #then apply the top filter to sitedata
+                #else:
+                    
+                    #generateFilteredData(self.currentTableData,type)
+                    #fstack.push(newfilter) #find out how to generate new filter
+
             
 #QApplication.setStyle(QtGui.QStyleFactory.create('cleanlooks'))    #work on making the appearance 'cleaner'
 app = QApplication(sys.argv)
@@ -298,3 +345,5 @@ app.exec()
 #location set to ALL when a time is set does not work 
 #setting the date FIRST and then setting a location filer doesnt work either
 #rework filters to be a stack
+#rather than a stack another idea would be to just apply the filters simultaneously creating one bool list which can then
+#just be applied to stack data
