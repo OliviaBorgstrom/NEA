@@ -202,10 +202,10 @@ class viewTab(QWidget):
             label = QLabel(items[i][0])
             labels.append(label) 
             dropdowns[i].addItems(items[i][1])
-            #dropdowns[i].currentIndexChanged.connect(self.filterSignal())
+            #dropdowns[i].currentIndexChanged.connect(self.applyFilters())
     
-        self.times.currentIndexChanged.connect(self.timeFilterSignal) ''''''''
-        self.sites.currentIndexChanged.connect(self.siteFilterSignal)''''''''
+        self.times.currentIndexChanged.connect(self.applyFilters)
+        self.sites.currentIndexChanged.connect(self.applyFilters)
         
         sideBySide = QGridLayout()
         for i in range(len(dropdowns)):
@@ -283,38 +283,38 @@ class viewTab(QWidget):
         return switcher.get(currenttext,'Error: unknown time frame')
 
 
-    def siteFilterSignal(self): #Lots of if statements, could implement a case, need a current filters applied thing
-        pass
-        print(self.sites.currentText(),'has been selected')
-        print(self.sites.currentIndex())
-        if self.sites.currentIndex() == 0:
-            if self.times.currentIndex() != 0 :
-                filtering = [self.timeSwitcher() <= datetime.strptime(self.currentTableData[i][0], '%Y-%m-%d') for i in range(len(self.currentTableData))]
-                FilteredData = self.generateFilteredData(filtering,self.currentTableData)
-                self.appendToTable(FilteredData)
+    #def siteFilterSignal(self): #Lots of if statements, could implement a case, need a current filters applied thing
+        #pass
+        #print(self.sites.currentText(),'has been selected')
+        #print(self.sites.currentIndex())
+        #if self.sites.currentIndex() == 0:
+            #if self.times.currentIndex() != 0 :
+                #filtering = [self.timeSwitcher() <= datetime.strptime(self.currentTableData[i][0], '%Y-%m-%d') for i in range(len(self.currentTableData))]
+                #FilteredData = self.generateFilteredData(filtering,self.currentTableData)
+                #self.appendToTable(FilteredData)
     
-            else:
-                self.appendToTable(self.sitedata)
+            #else:
+                #self.appendToTable(self.sitedata)
             
-        else:
-            if self.times.currentIndex() != 0:
-                filtering = [self.sites.currentText() in entry for entry in self.currentTableData] #check if there is another filter applies
-                FilteredData = self.generateFilteredData(filtering,self.currentTableData)
+        #else:
+            #if self.times.currentIndex() != 0:
+                #filtering = [self.sites.currentText() in entry for entry in self.currentTableData] #check if there is another filter applies
+                #FilteredData = self.generateFilteredData(filtering,self.currentTableData)
                 #break
-            else:
+            #else:
                 #filtering = list(map((lambda: self.sites.currentText() in self.sitedata[i]),self.sitedata))
-                filtering = [self.sites.currentText() in entry for entry in self.sitedata]
-                FilteredData = self.generateFilteredData(filtering,self.sitedata)
+                #filtering = [self.sites.currentText() in entry for entry in self.sitedata]
+                #FilteredData = self.generateFilteredData(filtering,self.sitedata)
                 #print(filtering)
             
-            self.appendToTable(FilteredData)
+            #self.appendToTable(FilteredData)
 
     
-    def generateFilteredData(self,boollist,current): #change this to include type
+    def generateFilteredData(self,boollist): #change this to include type
         FilteredData =[]
         for i in range(len(boollist)):
             if boollist[i]:
-                FilteredData.append(current[i])
+                FilteredData.append(self.sitedata[i])
                 #print(FilteredData)
         return FilteredData
 
@@ -332,6 +332,38 @@ class viewTab(QWidget):
                     
                     #generateFilteredData(self.currentTableData,type)
                     #fstack.push(newfilter) #find out how to generate new filter
+
+    def applyFilters(self):
+        sitefilter = self.sites.currentText()
+        timefilter = self.sites.currentText()
+        if sitefilter == 'All':
+            sitebool = ''
+        
+        sfilter = [sitebool in entry for entry in self.sitedata]
+        print(sfilter)
+
+
+        if timefilter == 'All':
+            timebool = datetime.today() 
+            tfilter = [timebool >= datetime.strptime(self.sitedata[i][0], '%Y-%m-%d') for i in range(len(self.sitedata))]
+        else:
+            timebool = self.timeSwitcher()
+            tfilter = [timebool <= datetime.strptime(self.sitedata[i][0], '%Y-%m-%d') for i in range(len(self.sitedata))]
+
+        print(tfilter)
+        combinedfilter = self.combine(tfilter,sfilter)
+        print(combinedfilter)
+        filteredData = self.generateFilteredData(combinedfilter)
+        self.appendToTable(filteredData)
+
+    def combine(self,list1,list2):
+        combined = []
+        for i in range (len(list1)):  #should be same length
+            if list1[i] and list2[i]:
+                combined.append(True)
+            else:
+                combined.append(False)
+        return combined
 
             
 #QApplication.setStyle(QtGui.QStyleFactory.create('cleanlooks'))    #work on making the appearance 'cleaner'
