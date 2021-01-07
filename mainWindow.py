@@ -236,123 +236,52 @@ class viewTab(QWidget):
                 self.dataTable.setItem(i,j,QTableWidgetItem(data[i][j]))
         self.setCurrentTableData(data)
 
-    
     def setCurrentTableData(self, data):
         self.currentTableData = data
-
-    def timeFilterSignal(self): #this year, past 7 days, this month, *this quarter*
-        print(self.times.currentText(),'has been selected')
-        self.thismonth = datetime.today().replace(day=1,hour = 0, minute= 0, second= 0, microsecond= 0)
-        self.sevendaysago = (datetime.today()-timedelta(days= 7)).replace(hour = 0, minute= 0, second= 0, microsecond= 0)
-        self.thisyear = datetime.today().replace(day=1,month=1,hour = 0, minute= 0, second= 0, microsecond= 0)
-  
-        if self.times.currentIndex() == 0:
-    
-            #print(self.sites.currentIndex())
-            if self.sites.currentIndex() != 0 :
-                filtering = [self.sites.currentText() in entry for entry in self.sitedata]
-                FilteredData = self.generateFilteredData(filtering,self.sitedata)
-                self.appendToTable(FilteredData)
-       
-            else:
-                self.appendToTable(self.sitedata)
-       
-        else:
-            if self.currentTableData != self.sitedata: #checking if a site filter is applied
-                print(self.timeSwitcher())
-                filtering = [self.timeSwitcher() <= datetime.strptime(self.currentTableData[i][0], '%Y-%m-%d') for i in range(len(self.currentTableData))]
-                FilteredData = self.generateFilteredData(filtering,self.currentTableData)
-            else: #if no site filter applied
-                print(self.timeSwitcher())
-                filtering = [self.timeSwitcher() <= datetime.strptime(self.sitedata[i][0], '%Y-%m-%d') for i in range(len(self.currentTableData))]
-                FilteredData = self.generateFilteredData(filtering,self.currentTableData)
-            
-            self.appendToTable(FilteredData)
-       
-            #date = self.currentTableData[0][0]
-            #datetimeobj = datetime.strptime(date, '%Y-%m-%d')
-
 
     def timeSwitcher(self):
         currenttext = self.times.currentText()
         switcher= {
             'This Year':self.thisyear,
             'Past 7 Days':self.sevendaysago,
-            'This Month': self.thismonth
+            'This Month': self.thismonth,
+            'This Quarter': self.thisquarter
         }
         return switcher.get(currenttext,'Error: unknown time frame')
 
-
-    #def siteFilterSignal(self): #Lots of if statements, could implement a case, need a current filters applied thing
-        #pass
-        #print(self.sites.currentText(),'has been selected')
-        #print(self.sites.currentIndex())
-        #if self.sites.currentIndex() == 0:
-            #if self.times.currentIndex() != 0 :
-                #filtering = [self.timeSwitcher() <= datetime.strptime(self.currentTableData[i][0], '%Y-%m-%d') for i in range(len(self.currentTableData))]
-                #FilteredData = self.generateFilteredData(filtering,self.currentTableData)
-                #self.appendToTable(FilteredData)
-    
-            #else:
-                #self.appendToTable(self.sitedata)
-            
-        #else:
-            #if self.times.currentIndex() != 0:
-                #filtering = [self.sites.currentText() in entry for entry in self.currentTableData] #check if there is another filter applies
-                #FilteredData = self.generateFilteredData(filtering,self.currentTableData)
-                #break
-            #else:
-                #filtering = list(map((lambda: self.sites.currentText() in self.sitedata[i]),self.sitedata))
-                #filtering = [self.sites.currentText() in entry for entry in self.sitedata]
-                #FilteredData = self.generateFilteredData(filtering,self.sitedata)
-                #print(filtering)
-            
-            #self.appendToTable(FilteredData)
-
-    
-    def generateFilteredData(self,boollist): #change this to include type
+    def generateFilteredData(self,boollist): 
         FilteredData =[]
         for i in range(len(boollist)):
             if boollist[i]:
                 FilteredData.append(self.sitedata[i])
-                #print(FilteredData)
         return FilteredData
 
-    #def applyFilter(type):
-        #if fstack.isEmpty():
-            #generateFilteredData(self.sitedata,type)
-        #else:
-            #if len(fstack) == 2 AND NOT type IN fstack.topitem(): #find how to check that the top item is not from the same filter as the new one
-                #temp = fstack.topitem()
-                #fstack.pop()
-                #if self.type.currentText == 'All': 
-                    #fstack.push(temp)
-                    #then apply the top filter to sitedata
-                #else:
-                    
-                    #generateFilteredData(self.currentTableData,type)
-                    #fstack.push(newfilter) #find out how to generate new filter
-
     def applyFilters(self):
+        print(self.times.currentText(),'has been selected')
+        self.thismonth = datetime.today().replace(day=1,hour = 0, minute= 0, second= 0, microsecond= 0)
+        self.sevendaysago = (datetime.today()-timedelta(days= 7)).replace(hour = 0, minute= 0, second= 0, microsecond= 0)
+        self.thisyear = datetime.today().replace(day=1,month=1,hour = 0, minute= 0, second= 0, microsecond= 0)
+        self.thisquarter = (datetime.today()-timedelta(days= 92)).replace(hour = 0, minute= 0, second= 0, microsecond= 0)
+       
         sitefilter = self.sites.currentText()
-        timefilter = self.sites.currentText()
-        if sitefilter == 'All':
-            sitebool = ''
-        
-        sfilter = [sitebool in entry for entry in self.sitedata]
-        print(sfilter)
+        timefilter = self.times.currentText()
 
+        if sitefilter == 'All':
+            sfilter = []
+            for i in range(len(self.sitedata)):
+                sfilter.append(True)
+        else:
+            sfilter = [sitefilter in entry for entry in self.sitedata]
 
         if timefilter == 'All':
-            timebool = datetime.today() 
-            tfilter = [timebool >= datetime.strptime(self.sitedata[i][0], '%Y-%m-%d') for i in range(len(self.sitedata))]
+            tfilter = []
+            for i in range(len(self.sitedata)):
+                tfilter.append(True)
         else:
             timebool = self.timeSwitcher()
             tfilter = [timebool <= datetime.strptime(self.sitedata[i][0], '%Y-%m-%d') for i in range(len(self.sitedata))]
 
-        print(tfilter)
         combinedfilter = self.combine(tfilter,sfilter)
-        print(combinedfilter)
         filteredData = self.generateFilteredData(combinedfilter)
         self.appendToTable(filteredData)
 
