@@ -9,6 +9,35 @@ import os
 import platform
 #QApplication, QDialog, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QTableWidget, QLabel, QLineEdit, QPushButton,
 #List of used modules 
+
+class stack(object):
+    def __init__(self):
+        self.pointer = -1
+        self.body = []
+        
+    def push(self,data):
+        self.body.append(data)
+        self.pointer+= 1
+
+    def pop(self,data):
+        self.body.pop(pointer)
+        self.pointer-=1
+
+    def topitem(self):
+        return self.body[self.pointer]
+    
+    def isEmpty(self):
+        return self.body == []
+    
+    def __len__(self):
+        return len(self.body)
+
+    def __str__(self):
+        return (str(self.body))[1:-1].replace(" ","")
+
+    def getcurrentpointer(self):
+        return self.pointer
+    
 class TabWidget(QDialog):
     
     def __init__(self):
@@ -128,6 +157,7 @@ class viewTab(QWidget):
         #filters = ['Location','From past:'] if i decide to add more filters
         #to grab Location list use a SELECT query to the database 
         self.viewbox = QVBoxLayout()
+        self.fstack = stack() #a stack for currently applied filters
         
         self.locations = fetchLocations("Localhost")
         self.rawsitedata = fetchSitedata("Localhost") #might changefrom rawsitedata
@@ -151,10 +181,10 @@ class viewTab(QWidget):
             #"Port Health Office, Estuary House, Wharncliffe Road "]  #just a dummy list for testing
         timeIntervals = ["All","This Year","This Quarter","This Month","Past 7 Days"]
         self.locations.insert(0,'All')
-        filters = [['Location:',self.locations],['From the past:',timeIntervals]] 
+        self.filters = [['Location:',self.locations],['From the past:',timeIntervals]] 
         #list of dropdown labels and the items to include in them
         filtersGroup = QGroupBox("Filter table results")
-        self.sideBySide = self.CreateGridLayout(filters)
+        self.sideBySide = self.CreateGridLayout(self.filters)
         
         filtersGroup.setLayout(self.sideBySide)
         topWidget.addWidget(filtersGroup)
@@ -172,10 +202,10 @@ class viewTab(QWidget):
             label = QLabel(items[i][0])
             labels.append(label) 
             dropdowns[i].addItems(items[i][1])
-            #dropdowns[i].currentIndexChanged.connect(self.filterSignal())
+            #dropdowns[i].currentIndexChanged.connect(self.applyFilters())
     
-        self.times.currentIndexChanged.connect(self.timeFilterSignal)
-        self.sites.currentIndexChanged.connect(self.siteFilterSignal)
+        self.times.currentIndexChanged.connect(self.applyFilters)
+        self.sites.currentIndexChanged.connect(self.applyFilters)
         
         sideBySide = QGridLayout()
         for i in range(len(dropdowns)):
@@ -206,86 +236,64 @@ class viewTab(QWidget):
                 self.dataTable.setItem(i,j,QTableWidgetItem(data[i][j]))
         self.setCurrentTableData(data)
 
-    
     def setCurrentTableData(self, data):
         self.currentTableData = data
-
-    def timeFilterSignal(self): #this year, past 7 days, this month, *this quarter*
-        print(self.times.currentText(),'has been selected')
-        self.thismonth = datetime.today().replace(day=1,hour = 0, minute= 0, second= 0, microsecond= 0)
-        self.sevendaysago = (datetime.today()-timedelta(days= 7)).replace(hour = 0, minute= 0, second= 0, microsecond= 0)
-        self.thisyear = datetime.today().replace(day=1,month=1,hour = 0, minute= 0, second= 0, microsecond= 0)
-  
-        if self.times.currentIndex() == 0:
-    
-            #print(self.sites.currentIndex())
-            if self.sites.currentIndex() != 0 :
-                filtering = [self.sites.currentText() in entry for entry in self.sitedata]
-                FilteredData = self.generateFilteredData(filtering,self.sitedata)
-                self.appendToTable(FilteredData)
-       
-            else:
-                self.appendToTable(self.sitedata)
-       
-        else:
-            if self.currentTableData != self.sitedata: #checking if a site filter is applied
-                print(self.timeSwitcher())
-                filtering = [self.timeSwitcher() <= datetime.strptime(self.currentTableData[i][0], '%Y-%m-%d') for i in range(len(self.currentTableData))]
-                FilteredData = self.generateFilteredData(filtering,self.currentTableData)
-            else: #if no site filter applied
-                print(self.timeSwitcher())
-                filtering = [self.timeSwitcher() <= datetime.strptime(self.sitedata[i][0], '%Y-%m-%d') for i in range(len(self.currentTableData))]
-                FilteredData = self.generateFilteredData(filtering,self.currentTableData)
-            
-            self.appendToTable(FilteredData)
-       
-            #date = self.currentTableData[0][0]
-            #datetimeobj = datetime.strptime(date, '%Y-%m-%d')
-
 
     def timeSwitcher(self):
         currenttext = self.times.currentText()
         switcher= {
             'This Year':self.thisyear,
             'Past 7 Days':self.sevendaysago,
-            'This Month': self.thismonth
+            'This Month': self.thismonth,
+            'This Quarter': self.thisquarter
         }
         return switcher.get(currenttext,'Error: unknown time frame')
 
-
-    def siteFilterSignal(self): #Lots of if statements, could implement a case, need a current filters applied thing
-        print(self.sites.currentText(),'has been selected')
-        print(self.sites.currentIndex())
-        if self.sites.currentIndex() == 0:
-            if self.times.currentIndex() != 0 :
-                filtering = [self.timeSwitcher() <= datetime.strptime(self.currentTableData[i][0], '%Y-%m-%d') for i in range(len(self.currentTableData))]
-                FilteredData = self.generateFilteredData(filtering,self.currentTableData)
-                self.appendToTable(FilteredData)
-    
-            else:
-                self.appendToTable(self.sitedata)
-            
-        else:
-            if self.times.currentIndex() != 0:
-                filtering = [self.sites.currentText() in entry for entry in self.currentTableData] #check if there is another filter applies
-                FilteredData = self.generateFilteredData(filtering,self.currentTableData)
-                #break
-            else:
-                #filtering = list(map((lambda: self.sites.currentText() in self.sitedata[i]),self.sitedata))
-                filtering = [self.sites.currentText() in entry for entry in self.sitedata]
-                FilteredData = self.generateFilteredData(filtering,self.sitedata)
-                #print(filtering)
-            
-            self.appendToTable(FilteredData)
-
-    
-    def generateFilteredData(self,boollist,current):
+    def generateFilteredData(self,boollist): 
         FilteredData =[]
         for i in range(len(boollist)):
             if boollist[i]:
-                FilteredData.append(current[i])
-                #print(FilteredData)
+                FilteredData.append(self.sitedata[i])
         return FilteredData
+
+    def applyFilters(self):
+        print(self.times.currentText(),'has been selected')
+        self.thismonth = datetime.today().replace(day=1,hour = 0, minute= 0, second= 0, microsecond= 0)
+        self.sevendaysago = (datetime.today()-timedelta(days= 7)).replace(hour = 0, minute= 0, second= 0, microsecond= 0)
+        self.thisyear = datetime.today().replace(day=1,month=1,hour = 0, minute= 0, second= 0, microsecond= 0)
+        self.thisquarter = (datetime.today()-timedelta(days= 92)).replace(hour = 0, minute= 0, second= 0, microsecond= 0)
+       
+        sitefilter = self.sites.currentText()
+        timefilter = self.times.currentText()
+
+        if sitefilter == 'All':
+            sfilter = []
+            for i in range(len(self.sitedata)):
+                sfilter.append(True)
+        else:
+            sfilter = [sitefilter in entry for entry in self.sitedata]
+
+        if timefilter == 'All':
+            tfilter = []
+            for i in range(len(self.sitedata)):
+                tfilter.append(True)
+        else:
+            timebool = self.timeSwitcher()
+            tfilter = [timebool <= datetime.strptime(self.sitedata[i][0], '%Y-%m-%d') for i in range(len(self.sitedata))]
+
+        combinedfilter = self.combine(tfilter,sfilter)
+        filteredData = self.generateFilteredData(combinedfilter)
+        self.appendToTable(filteredData)
+
+    def combine(self,list1,list2):
+        combined = []
+        for i in range (len(list1)):  #should be same length
+            if list1[i] and list2[i]:
+                combined.append(True)
+            else:
+                combined.append(False)
+        return combined
+
             
 #QApplication.setStyle(QtGui.QStyleFactory.create('cleanlooks'))    #work on making the appearance 'cleaner'
 app = QApplication(sys.argv)
@@ -298,3 +306,5 @@ app.exec()
 #location set to ALL when a time is set does not work 
 #setting the date FIRST and then setting a location filer doesnt work either
 #rework filters to be a stack
+#rather than a stack another idea would be to just apply the filters simultaneously creating one bool list which can then
+#just be applied to stack data
