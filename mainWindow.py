@@ -1,12 +1,43 @@
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import QIcon
 from PyQt5 import QtCore
+from PyQt5 import QtGui
+from Database import fetchLocations,fetchSitedata
+from datetime import datetime,timedelta
 import sys
 import os
 import platform
 #QApplication, QDialog, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QTableWidget, QLabel, QLineEdit, QPushButton,
 #List of used modules 
 
+class stack(object):
+    def __init__(self):
+        self.pointer = -1
+        self.body = []
+        
+    def push(self,data):
+        self.body.append(data)
+        self.pointer+= 1
+
+    def pop(self,data):
+        self.body.pop(pointer)
+        self.pointer-=1
+
+    def topitem(self):
+        return self.body[self.pointer]
+    
+    def isEmpty(self):
+        return self.body == []
+    
+    def __len__(self):
+        return len(self.body)
+
+    def __str__(self):
+        return (str(self.body))[1:-1].replace(" ","")
+
+    def getcurrentpointer(self):
+        return self.pointer
+    
 class TabWidget(QDialog):
     
     def __init__(self):
@@ -27,7 +58,6 @@ class TabWidget(QDialog):
         self.setLayout(mainbox)
     
         # mainbox is the encompassing layout for the whole window, the tabs are added to a box.
-
 
 class homeTab(QWidget):
     def __init__(self):
@@ -55,9 +85,6 @@ class homeTab(QWidget):
             os.system('dolphin /home/livi/NEA/Past_Reports') 
         else:
             os.system(r'explorer.exe C:\Users\Livi\Documents\GitHub\NEA\Past_Reports')
-
-        
-
 
 class createTab(QWidget):
     def __init__(self):
@@ -124,33 +151,40 @@ class importTab(QWidget):
         importbox.addLayout(HButtons)
         self.setLayout(importbox)
 
-
 class viewTab(QWidget):
     def __init__(self):
         super().__init__()
         #filters = ['Location','From past:'] if i decide to add more filters
         #to grab Location list use a SELECT query to the database 
-        self.topWidget = self.initTopWidget()
+        self.viewbox = QVBoxLayout()
+        self.fstack = stack() #a stack for currently applied filters
         
-        self.bottomWidget = self.initBottomWidget()
+        self.locations = fetchLocations("Localhost")
+        self.rawsitedata = fetchSitedata("Localhost") #might changefrom rawsitedata
         
-        viewbox = QVBoxLayout()
-        viewbox.addLayout(self.topWidget)
-        viewbox.addLayout(self.bottomWidget) #add square filters search box in the corner? or QVBoxLayout 
+        self.sitedata= [(str(site[0]),site[1],str(site[2]),str(site[3]),str(site[4])) for site in self.rawsitedata] # might not want here
+        self.currentTableData = self.sitedata
 
-        self.setLayout(viewbox)
+        self.topWidget = self.initTopWidget() 
+        self.bottomWidget = self.initBottomWidget()
     
+        self.viewbox.addLayout(self.topWidget)
+        self.viewbox.addLayout(self.bottomWidget) #add square filters search box in the corner? or QVBoxLayout 
+
+        self.setLayout(self.viewbox)
+        
     def initTopWidget(self):
         topWidget = QHBoxLayout()
         
-        locations = ["Asda Ellis Way","Beeson Street","Boating Lake","Brighton Slipway","Butt Lane Laceby",
-            "Conistone Avenue Shops","Cromwell Road (Leisure Centre)","Weelsby Primary School",
-            "Port Health Office, Estuary House, Wharncliffe Road "]  #just a dummy list for testing
-        timeIntervals = ["Year","Quarter","Month","Week"]
-        filters = [['Location:',locations],['From the past:',timeIntervals]] 
+        #locations = ["Asda Ellis Way","Beeson Street","Boating Lake","Brighton Slipway","Butt Lane Laceby",
+            #"Conistone Avenue Shops","Cromwell Road (Leisure Centre)","Weelsby Primary School",
+            #"Port Health Office, Estuary House, Wharncliffe Road "]  #just a dummy list for testing
+        timeIntervals = ["All","This Year","This Quarter","This Month","Past 7 Days"]
+        self.locations.insert(0,'All')
+        self.filters = [['Location:',self.locations],['From the past:',timeIntervals]] 
         #list of dropdown labels and the items to include in them
         filtersGroup = QGroupBox("Filter table results")
-        self.sideBySide = self.CreateGridLayout(filters)
+        self.sideBySide = self.CreateGridLayout(self.filters)
         
         filtersGroup.setLayout(self.sideBySide)
         topWidget.addWidget(filtersGroup)
@@ -159,14 +193,19 @@ class viewTab(QWidget):
     
 
     def CreateGridLayout(self,items):
+        self.times = QComboBox()
+        self.sites = QComboBox()
+       
         labels = []
-        dropdowns = [] 
-        for i in items:
-            label = QLabel(i[0])
+        dropdowns = [self.sites,self.times] 
+        for i in range(len(items)):
+            label = QLabel(items[i][0])
             labels.append(label) 
-            dropdown = QComboBox()
-            dropdown.addItems(i[1])
-            dropdowns.append(dropdown)
+            dropdowns[i].addItems(items[i][1])
+            #dropdowns[i].currentIndexChanged.connect(self.applyFilters())
+    
+        self.times.currentIndexChanged.connect(self.applyFilters)
+        self.sites.currentIndexChanged.connect(self.applyFilters)
         
         sideBySide = QGridLayout()
         for i in range(len(dropdowns)):
@@ -176,29 +215,96 @@ class viewTab(QWidget):
         return sideBySide
         
     def initBottomWidget(self):
-        bottomWidget = QGridLayout()    #set some tooltips?
-        dataTable = QTableWidget()
+        bottomWidget = QGridLayout()    #set some tooltips, move all inits to self?
+        self.dataTable = QTableWidget()
     
-        dataTable.setColumnCount(5)
-        dataTable.setRowCount(30)
-        dataTable.setHorizontalHeaderLabels(["Date", "Location", "Glass %", "Paper %", "Plastic %"])
-        dataTable.horizontalHeader().setSectionResizeMode(1)
-        dataTable.setEditTriggers(QAbstractItemView.NoEditTriggers)
-        dataTable.setItem(0, 0, QTableWidgetItem("2020-12-06"))
-        dataTable.setItem(0, 1, QTableWidgetItem("Laceby"))
-        dataTable.setItem(0, 2, QTableWidgetItem("75"))
-        dataTable.setItem
-        
-        dataTable.resizeColumnsToContents()
-        bottomWidget.addWidget(dataTable, 0, 0)
+        self.dataTable.setColumnCount(5)
+        self.dataTable.setRowCount(30)
+        self.dataTable.setHorizontalHeaderLabels(["Date", "Location", "Glass %", "Paper %", "Plastic %"])
+        self.dataTable.horizontalHeader().setSectionResizeMode(1)
+        self.dataTable.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.appendToTable(self.sitedata)
+        self.dataTable.resizeColumnsToContents()
+        bottomWidget.addWidget(self.dataTable, 0, 0)
         
         return bottomWidget
-        #bottomWidget.setVerticalHeaderLabels('Date','Location','Glass %','Paper %','Plastic %')
 
+    def appendToTable(self,data):
+        self.dataTable.clearContents()
+        for i in range(len(data)):
+            for j in range(len(data[i])):
+                self.dataTable.setItem(i,j,QTableWidgetItem(data[i][j]))
+        self.setCurrentTableData(data)
 
-        
+    def setCurrentTableData(self, data):
+        self.currentTableData = data
+
+    def timeSwitcher(self):
+        currenttext = self.times.currentText()
+        switcher= {
+            'This Year':self.thisyear,
+            'Past 7 Days':self.sevendaysago,
+            'This Month': self.thismonth,
+            'This Quarter': self.thisquarter
+        }
+        return switcher.get(currenttext,'Error: unknown time frame')
+
+    def generateFilteredData(self,boollist): 
+        FilteredData =[]
+        for i in range(len(boollist)):
+            if boollist[i]:
+                FilteredData.append(self.sitedata[i])
+        return FilteredData
+
+    def applyFilters(self):
+        print(self.times.currentText(),'has been selected')
+        self.thismonth = datetime.today().replace(day=1,hour = 0, minute= 0, second= 0, microsecond= 0)
+        self.sevendaysago = (datetime.today()-timedelta(days= 7)).replace(hour = 0, minute= 0, second= 0, microsecond= 0)
+        self.thisyear = datetime.today().replace(day=1,month=1,hour = 0, minute= 0, second= 0, microsecond= 0)
+        self.thisquarter = (datetime.today()-timedelta(days= 92)).replace(hour = 0, minute= 0, second= 0, microsecond= 0)
+       
+        sitefilter = self.sites.currentText()
+        timefilter = self.times.currentText()
+
+        if sitefilter == 'All':
+            sfilter = []
+            for i in range(len(self.sitedata)):
+                sfilter.append(True)
+        else:
+            sfilter = [sitefilter in entry for entry in self.sitedata]
+
+        if timefilter == 'All':
+            tfilter = []
+            for i in range(len(self.sitedata)):
+                tfilter.append(True)
+        else:
+            timebool = self.timeSwitcher()
+            tfilter = [timebool <= datetime.strptime(self.sitedata[i][0], '%Y-%m-%d') for i in range(len(self.sitedata))]
+
+        combinedfilter = self.combine(tfilter,sfilter)
+        filteredData = self.generateFilteredData(combinedfilter)
+        self.appendToTable(filteredData)
+
+    def combine(self,list1,list2):
+        combined = []
+        for i in range (len(list1)):  #should be same length
+            if list1[i] and list2[i]:
+                combined.append(True)
+            else:
+                combined.append(False)
+        return combined
+
+            
 #QApplication.setStyle(QtGui.QStyleFactory.create('cleanlooks'))    #work on making the appearance 'cleaner'
 app = QApplication(sys.argv)
 mainWindow = TabWidget()
 mainWindow.show()
 app.exec()
+
+#parameterise database, use filter map reduce, improve filtering method so that it isnt linear (need better time complexity)
+#date filter is buggy
+#location set to ALL when a time is set does not work 
+#setting the date FIRST and then setting a location filer doesnt work either
+#rework filters to be a stack
+#rather than a stack another idea would be to just apply the filters simultaneously creating one bool list which can then
+#just be applied to stack data
