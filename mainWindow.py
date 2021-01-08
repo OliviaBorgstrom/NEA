@@ -1,9 +1,10 @@
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import * # noqa
 from PyQt5.QtGui import QIcon
 from PyQt5 import QtCore
 from PyQt5 import QtGui
 from Database import fetchLocations,fetchSitedata
 from datetime import datetime,timedelta
+from QDialog_Edit import EditDialog
 import sys
 import os
 import platform
@@ -38,7 +39,7 @@ class stack(object):
     def getcurrentpointer(self):
         return self.pointer
     
-class TabWidget(QDialog):
+class TabWidget(QWidget):
     
     def __init__(self):
         super().__init__()
@@ -65,9 +66,9 @@ class homeTab(QWidget):
         homebox = QVBoxLayout()
         WelcomeLabel = QLabel('Welcome to the NELincs Waste Manager')
         WelcomeLabel.setStyleSheet("font: bold 20pt AGENTORANGE") 
-        #WelcomeLabel.resize(, 25)
+        # WelcomeLabel.resize(, 25)
         WelcomeLabel.setAlignment(QtCore.Qt.AlignCenter)
-        
+    
         HButtons = QHBoxLayout()
         Seereports = QPushButton('See past reports')
         Seereports.clicked.connect(self.openfile) 
@@ -81,8 +82,8 @@ class homeTab(QWidget):
         self.setLayout(homebox)
         
     def openfile(self):
-        if platform.system() == 'Linux':    #for my cross system development 
-            os.system('dolphin /home/livi/NEA/Past_Reports') 
+        if platform.system() == 'Linux':    #for my cross system development
+            os.system('dolphin /home/livi/NEA/Past_Reports')
         else:
             os.system(r'explorer.exe C:\Users\Livi\Documents\GitHub\NEA\Past_Reports')
 
@@ -181,7 +182,7 @@ class viewTab(QWidget):
             #"Port Health Office, Estuary House, Wharncliffe Road "]  #just a dummy list for testing
         timeIntervals = ["All","This Year","This Quarter","This Month","Past 7 Days"]
         self.locations.insert(0,'All')
-        self.filters = [['Location:',self.locations],['From the past:',timeIntervals]] 
+        self.filters = [['Location:',self.locations],['From:',timeIntervals]] 
         #list of dropdown labels and the items to include in them
         filtersGroup = QGroupBox("Filter table results")
         self.sideBySide = self.CreateGridLayout(self.filters)
@@ -191,7 +192,6 @@ class viewTab(QWidget):
         
         return topWidget
     
-
     def CreateGridLayout(self,items):
         self.times = QComboBox()
         self.sites = QComboBox()
@@ -223,12 +223,39 @@ class viewTab(QWidget):
         self.dataTable.setHorizontalHeaderLabels(["Date", "Location", "Glass %", "Paper %", "Plastic %"])
         self.dataTable.horizontalHeader().setSectionResizeMode(1)
         self.dataTable.setEditTriggers(QAbstractItemView.NoEditTriggers)
+        self.dataTable.cellClicked.connect(self.rowclicked)
         self.appendToTable(self.sitedata)
         self.dataTable.resizeColumnsToContents()
+        
+        self.editButton = QPushButton('Edit')
+        self.validRowSelected = False
+        self.editButton.setToolTip('Select a row then press edit')
+        self.editButton.setFixedSize(QtCore.QSize(120,30))
+        self.editButton.clicked.connect(self.execute)
+       
         bottomWidget.addWidget(self.dataTable, 0, 0)
+        bottomWidget.addWidget(self.editButton,1,0)
         
         return bottomWidget
 
+    def rowclicked(self, row):
+        try:
+            self.currentRowSelected = self.currentTableData[row]
+        except:
+            self.validRowSelected = False
+        else:
+            self.validRowSelected = True
+            #print("Row %d was clicked" % (row))
+            #print(self.currentRowSelected)
+
+
+    def execute(self):
+        if not self.validRowSelected:
+            return
+        else:
+            self.Ewindow = EditDialog(self.currentRowSelected,self.locations)
+            self.Ewindow.exec()
+    
     def appendToTable(self,data):
         self.dataTable.clearContents()
         for i in range(len(data)):
@@ -294,6 +321,7 @@ class viewTab(QWidget):
                 combined.append(False)
         return combined
 
+
             
 #QApplication.setStyle(QtGui.QStyleFactory.create('cleanlooks'))    #work on making the appearance 'cleaner'
 app = QApplication(sys.argv)
@@ -308,3 +336,6 @@ app.exec()
 #rework filters to be a stack
 #rather than a stack another idea would be to just apply the filters simultaneously creating one bool list which can then
 #just be applied to stack data
+
+
+#add a thing which shows up when someone trys to press edit without selecting anything first
