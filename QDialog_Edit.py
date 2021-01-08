@@ -47,7 +47,7 @@ class EditDialog(QDialog):
        
         for i in range(len(boxes)):
             boxes[i].setValue(int(self.rowdata[i+2]))
-            boxes[i].setMaximum(100)
+            boxes[i].setMaximum(100)  #cant have more than 100%
             self.editGroup.addWidget(boxes[i])
 
         
