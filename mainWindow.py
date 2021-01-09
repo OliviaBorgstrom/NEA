@@ -160,10 +160,14 @@ class viewTab(QWidget):
         self.viewbox = QVBoxLayout()
         self.fstack = stack() #a stack for currently applied filters
         
-        self.locations = fetchLocations("Localhost")
+        self.rawlocations = fetchLocations("Localhost")
         self.rawsitedata = fetchSitedata("Localhost") #might changefrom rawsitedata
-        
-        self.sitedata= [(str(site[0]),site[1],str(site[2]),str(site[3]),str(site[4])) for site in self.rawsitedata] # might not want here
+    
+        self.locations,self.siteIDs = [location[1] for location in self.rawlocations],[location[0] for location in self.rawlocations]
+        #print(self.locations)
+        #print(self.siteIDs)
+
+        self.sitedata= [(str(site[1]),site[2],str(site[3]),str(site[4]),str(site[5])) for site in self.rawsitedata] # might not want here
         self.currentTableData = self.sitedata
 
         self.topWidget = self.initTopWidget() 
@@ -224,7 +228,10 @@ class viewTab(QWidget):
         self.dataTable.horizontalHeader().setSectionResizeMode(1)
         self.dataTable.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.dataTable.cellClicked.connect(self.rowclicked)
+       
+        self.currententryIDs = [self.rawsitedata[i][0] for i in range(len(self.sitedata))] #be wary with this because if they arent correct order, the method will not work
         self.appendToTable(self.sitedata)
+
         self.dataTable.resizeColumnsToContents()
         
         self.editButton = QPushButton('Edit')
@@ -245,6 +252,7 @@ class viewTab(QWidget):
             self.validRowSelected = False
         else:
             self.validRowSelected = True
+            self.selectedEntryID = self.currententryIDs[row] #it needs the selected entryID to know what change in the database
             #print("Row %d was clicked" % (row))
             #print(self.currentRowSelected)
 
@@ -253,7 +261,7 @@ class viewTab(QWidget):
         if not self.validRowSelected:
             return
         else:
-            self.Ewindow = EditDialog(self.currentRowSelected,self.locations)
+            self.Ewindow = EditDialog(self.currentRowSelected,self.locations, self.selectedEntryID, self.siteIDs)
             self.Ewindow.exec()
     
     def appendToTable(self,data):
@@ -278,8 +286,10 @@ class viewTab(QWidget):
 
     def generateFilteredData(self,boollist): 
         FilteredData =[]
+        self.currententryIDs = []
         for i in range(len(boollist)):
             if boollist[i]:
+                self.currententryIDs.append(self.rawsitedata[i][0]) ## entryid used here too
                 FilteredData.append(self.sitedata[i])
         return FilteredData
 
@@ -330,12 +340,7 @@ mainWindow.show()
 app.exec()
 
 #parameterise database, use filter map reduce, improve filtering method so that it isnt linear (need better time complexity)
-#date filter is buggy
-#location set to ALL when a time is set does not work 
-#setting the date FIRST and then setting a location filer doesnt work either
-#rework filters to be a stack
-#rather than a stack another idea would be to just apply the filters simultaneously creating one bool list which can then
-#just be applied to stack data
+#add tooltips for hovering over an entry 
 
 
 #add a thing which shows up when someone trys to press edit without selecting anything first
