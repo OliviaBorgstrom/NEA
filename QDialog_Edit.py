@@ -24,7 +24,7 @@ class EditDialog(QDialog):
 
         self.buttonBox = QDialogButtonBox(buttons)
         self.buttonBox.accepted.connect(self.saveToDatabase)
-        self.buttonBox.rejected.connect(self.reject)
+        self.buttonBox.rejected.connect(self.oncancel)
 
         self.layout = QVBoxLayout()
         self.layout.addLayout(self.editGroup)
@@ -52,13 +52,17 @@ class EditDialog(QDialog):
             boxes[i].setMaximum(100)  #cant have more than 100%
             self.editGroup.addWidget(boxes[i])
     
+    def oncancel(self):
+        self.reject()
+   
     def saveToDatabase(self):
         self.selectedlocation = self.siteids[self.siteDropDown.currentIndex()] #we didnt need to get the siteids could have just used index 
         dateboxvalue = self.dateEdit.date()
-        print(dateboxvalue)
+        #print(dateboxvalue)
         self.date = dateboxvalue.toPyDate()
         editExisting("Localhost",self.date,self.selectedlocation,self.glassEdit.value(), self.paperEdit.value(), self.plasticEdit.value(), self.entryid)
         self.accept()
+    
 
         
 #fix the resizing so that a person cant resize the editing window, but it still autoexpands to the right size

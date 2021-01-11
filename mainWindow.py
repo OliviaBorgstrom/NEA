@@ -163,11 +163,7 @@ class viewTab(QWidget):
         self.rawlocations = fetchLocations("Localhost")
         self.rawsitedata = fetchSitedata("Localhost") #might changefrom rawsitedata
     
-        self.locations,self.siteIDs = [location[1] for location in self.rawlocations],[location[0] for location in self.rawlocations]
-        #print(self.locations)
-        #print(self.siteIDs)
-
-        self.sitedata= [(str(site[1]),site[2],str(site[3]),str(site[4]),str(site[5])) for site in self.rawsitedata] # might not want here
+        self.formatFromDB(self.rawlocations,self.rawsitedata)
         self.currentTableData = self.sitedata
 
         self.topWidget = self.initTopWidget() 
@@ -238,13 +234,24 @@ class viewTab(QWidget):
         self.validRowSelected = False
         self.editButton.setToolTip('Select a row then press edit')
         self.editButton.setFixedSize(QtCore.QSize(120,30))
-        self.editButton.clicked.connect(self.execute)
+        self.editButton.clicked.connect(self.refresh(self.execute))
        
         bottomWidget.addWidget(self.dataTable, 0, 0)
         bottomWidget.addWidget(self.editButton,1,0)
         
         return bottomWidget
 
+    def refresh(self,func):
+        def wrapper(self):
+            func() 
+            print(self.rawlocations)
+            self.rawlocations = fetchLocations("Localhost")
+            self.rawsitedata = fetchSitedata("Localhost")
+            self.formatFromDB(self.rawlocations,self.rawsitedata)
+            self.applyFilters
+        return wrapper
+    
+    
     def rowclicked(self, row):
         try:
             self.currentRowSelected = self.currentTableData[row]
@@ -256,7 +263,7 @@ class viewTab(QWidget):
             #print("Row %d was clicked" % (row))
             #print(self.currentRowSelected)
 
-
+    #@refresh
     def execute(self):
         if not self.validRowSelected:
             return
@@ -273,6 +280,10 @@ class viewTab(QWidget):
 
     def setCurrentTableData(self, data):
         self.currentTableData = data
+    
+    def formatFromDB(self,locationdata, sitedata):
+        self.locations,self.siteIDs = [location[1] for location in locationdata],[location[0] for location in locationdata]
+        self.sitedata= [(str(site[1]),site[2],str(site[3]),str(site[4]),str(site[5])) for site in sitedata]
 
     def timeSwitcher(self):
         currenttext = self.times.currentText()
@@ -344,3 +355,5 @@ app.exec()
 
 
 #add a thing which shows up when someone trys to press edit without selecting anything first
+#need to make the page refresh when a dialog is closed
+#make to add the 'Add feature' for adding an entry manually

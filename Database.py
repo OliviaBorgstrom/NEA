@@ -28,9 +28,8 @@ def fetchSitedata(port):  # still need windows option
 
 def editExisting(port, inputdate, locationid, avrglass, avrpaper, avrplastic, entryID):
     con = psycopg2.connect(database="livi", user="livi", password="Pass1234",host=port)
-    print("Database opened successfully")
+    #print("Database opened successfully")
     cur = con.cursor()
-    print(inputdate)
     parameters = '''
     UPDATE sitedata 
     SET date = %s, locationid = %s, avrglass = %s, avrpaper = %s, avrplastic = %s
