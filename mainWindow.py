@@ -9,27 +9,27 @@ import sys
 import os
 import platform
 #QApplication, QDialog, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QTableWidget, QLabel, QLineEdit, QPushButton,
-#List of used modules 
+#List of used modules
 
 class stack(object):
     def __init__(self):
         self.pointer = -1
         self.body = []
-        
+
     def push(self,data):
         self.body.append(data)
-        self.pointer+= 1
+        self.pointer += 1
 
     def pop(self,data):
         self.body.pop(pointer)
-        self.pointer-=1
+        self.pointer -= 1
 
     def topitem(self):
         return self.body[self.pointer]
-    
+
     def isEmpty(self):
         return self.body == []
-    
+
     def __len__(self):
         return len(self.body)
 
@@ -38,14 +38,14 @@ class stack(object):
 
     def getcurrentpointer(self):
         return self.pointer
-    
+
 class TabWidget(QWidget):
     
     def __init__(self):
         super().__init__()
         self.setWindowTitle("NEL Wastebase")
         self.setWindowIcon(QIcon("gearicon.jpg"))
-        self.setGeometry(300,150,700,500) #x,y,width,height
+        self.setGeometry(300,150,700,500)  # x,y,width,height
 
         tabmenu = QTabWidget()
         #tabmenu.setTabsClosable(True)
@@ -57,7 +57,7 @@ class TabWidget(QWidget):
         mainbox = QVBoxLayout()
         mainbox.addWidget(tabmenu)
         self.setLayout(mainbox)
-    
+
         # mainbox is the encompassing layout for the whole window, the tabs are added to a box.
 
 class homeTab(QWidget):
@@ -65,13 +65,13 @@ class homeTab(QWidget):
         super().__init__()
         homebox = QVBoxLayout()
         WelcomeLabel = QLabel('Welcome to the NELincs Waste Manager')
-        WelcomeLabel.setStyleSheet("font: bold 20pt AGENTORANGE") 
+        WelcomeLabel.setStyleSheet("font: bold 20pt AGENTORANGE")
         # WelcomeLabel.resize(, 25)
         WelcomeLabel.setAlignment(QtCore.Qt.AlignCenter)
     
         HButtons = QHBoxLayout()
         Seereports = QPushButton('See past reports')
-        Seereports.clicked.connect(self.openfile) 
+        Seereports.clicked.connect(self.openfile)
         
         Gethelp = QPushButton('How to get started?')
         HButtons.addWidget(Seereports)
@@ -82,7 +82,7 @@ class homeTab(QWidget):
         self.setLayout(homebox)
         
     def openfile(self):
-        if platform.system() == 'Linux':    #for my cross system development
+        if platform.system() == 'Linux':    # for my cross system development
             os.system('dolphin /home/livi/NEA/Past_Reports')
         else:
             os.system(r'explorer.exe C:\Users\Livi\Documents\GitHub\NEA\Past_Reports')
@@ -93,7 +93,7 @@ class createTab(QWidget):
         createbox = QVBoxLayout()
         
         chooseFromLabel = QLabel("Create a new report by choosing\nfrom the following:")
-        chooseFromLabel.setStyleSheet("font: 18pt AGENTORANGE") 
+        chooseFromLabel.setStyleSheet("font: 18pt AGENTORANGE")
         chooseFromLabel.setAlignment(QtCore.Qt.AlignLeft)
 
         datesRow = self.initButtonRow("Use data from the past:",['Week','Month','Quarter','Year'])
@@ -110,7 +110,7 @@ class createTab(QWidget):
 
         self.setLayout(createbox)
 
-    def initButtonRow(self,label,items): #initialises layouts for dates and sites
+    def initButtonRow(self,label,items):  # initialises layouts for dates and sites
         HRow = QHBoxLayout()
         HRowlabel = QLabel(label)
         HRowlabel.setStyleSheet("font: 12pt AGENTORANGE")
@@ -133,16 +133,16 @@ class createTab(QWidget):
 
 class importTab(QWidget):
     def __init__(self):
-        super().__init__() 
+        super().__init__()
         importbox = QVBoxLayout()
         ImportLabel = QLabel('Choose an option to import your files')
-        ImportLabel.setStyleSheet("font: bold 20pt AGENTORANGE") 
+        ImportLabel.setStyleSheet("font: bold 20pt AGENTORANGE")
         #WelcomeLabel.resize(, 25)
         ImportLabel.setAlignment(QtCore.Qt.AlignCenter)
         
         HButtons = QHBoxLayout()
         fileImport = QPushButton('Import from file')
-        #fileImport.clicked.connect(self.openfile) 
+        #fileImport.clicked.connect(self.openfile)
         
         fileAuto = QPushButton('Automatically detect to import')
         HButtons.addWidget(fileImport)
@@ -156,33 +156,30 @@ class viewTab(QWidget):
     def __init__(self):
         super().__init__()
         #filters = ['Location','From past:'] if i decide to add more filters
-        #to grab Location list use a SELECT query to the database 
+        #to grab Location list use a SELECT query to the database
         self.viewbox = QVBoxLayout()
-        self.fstack = stack() #a stack for currently applied filters
-        
+        self.fstack = stack()  # a stack for currently applied filters
+
         self.rawlocations = fetchLocations("Localhost")
-        self.rawsitedata = fetchSitedata("Localhost") #might changefrom rawsitedata
-    
+        self.rawsitedata = fetchSitedata("Localhost")  # might changefrom rawsitedata
+
         self.formatFromDB(self.rawlocations,self.rawsitedata)
         self.currentTableData = self.sitedata
 
-        self.topWidget = self.initTopWidget() 
+        self.topWidget = self.initTopWidget()
         self.bottomWidget = self.initBottomWidget()
-    
+
         self.viewbox.addLayout(self.topWidget)
-        self.viewbox.addLayout(self.bottomWidget) #add square filters search box in the corner? or QVBoxLayout 
+        self.viewbox.addLayout(self.bottomWidget)  # add square filters search box in the corner? or QVBoxLayout
 
         self.setLayout(self.viewbox)
         
     def initTopWidget(self):
         topWidget = QHBoxLayout()
         
-        #locations = ["Asda Ellis Way","Beeson Street","Boating Lake","Brighton Slipway","Butt Lane Laceby",
-            #"Conistone Avenue Shops","Cromwell Road (Leisure Centre)","Weelsby Primary School",
-            #"Port Health Office, Estuary House, Wharncliffe Road "]  #just a dummy list for testing
         timeIntervals = ["All","This Year","This Quarter","This Month","Past 7 Days"]
         self.locations.insert(0,'All')
-        self.filters = [['Location:',self.locations],['From:',timeIntervals]] 
+        self.filters = [['Location:',self.locations],['From:',timeIntervals]]
         #list of dropdown labels and the items to include in them
         filtersGroup = QGroupBox("Filter table results")
         self.sideBySide = self.CreateGridLayout(self.filters)
@@ -197,10 +194,10 @@ class viewTab(QWidget):
         self.sites = QComboBox()
        
         labels = []
-        dropdowns = [self.sites,self.times] 
+        dropdowns = [self.sites,self.times]
         for i in range(len(items)):
             label = QLabel(items[i][0])
-            labels.append(label) 
+            labels.append(label)
             dropdowns[i].addItems(items[i][1])
             #dropdowns[i].currentIndexChanged.connect(self.applyFilters())
     
@@ -215,7 +212,7 @@ class viewTab(QWidget):
         return sideBySide
         
     def initBottomWidget(self):
-        bottomWidget = QGridLayout()    #set some tooltips, move all inits to self?
+        bottomWidget = QGridLayout()    # set some tooltips, move all inits to self?
         self.dataTable = QTableWidget()
     
         self.dataTable.setColumnCount(5)
@@ -225,7 +222,7 @@ class viewTab(QWidget):
         self.dataTable.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.dataTable.cellClicked.connect(self.rowclicked)
        
-        self.currententryIDs = [self.rawsitedata[i][0] for i in range(len(self.sitedata))] #be wary with this because if they arent correct order, the method will not work
+        self.currententryIDs = [self.rawsitedata[i][0] for i in range(len(self.sitedata))]  # be wary with this because if they arent correct order, the method will not work # noqa
         self.appendToTable(self.sitedata)
 
         self.dataTable.resizeColumnsToContents()
@@ -243,12 +240,11 @@ class viewTab(QWidget):
 
     def refresh(self,func):
         def wrapper():
-            func() 
+            func()
             self.rawsitedata = fetchSitedata("Localhost")
             self.formatFromDB(self.rawlocations,self.rawsitedata)
             self.applyFilters()
         return wrapper
-    
     
     def rowclicked(self, row):
         try:
@@ -257,7 +253,7 @@ class viewTab(QWidget):
             self.validRowSelected = False
         else:
             self.validRowSelected = True
-            self.selectedEntryID = self.currententryIDs[row] #it needs the selected entryID to know what change in the database
+            self.selectedEntryID = self.currententryIDs[row]  # it needs the selected entryID to know what change in the database # noqa
             #print("Row %d was clicked" % (row))
             #print(self.currentRowSelected)
 
@@ -281,13 +277,13 @@ class viewTab(QWidget):
     
     def formatFromDB(self,locationdata, sitedata):
         self.locations,self.siteIDs = [location[1] for location in locationdata],[location[0] for location in locationdata]
-        self.sitedata= [(str(site[1]),site[2],str(site[3]),str(site[4]),str(site[5])) for site in sitedata]
+        self.sitedata = [(str(site[1]),site[2],str(site[3]),str(site[4]),str(site[5])) for site in sitedata]
         #print(self.locations)
         #print(self.sitedata)
 
     def timeSwitcher(self):
         currenttext = self.times.currentText()
-        switcher= {
+        switcher = {
             'This Year':self.thisyear,
             'Past 7 Days':self.sevendaysago,
             'This Month': self.thismonth,
@@ -295,21 +291,21 @@ class viewTab(QWidget):
         }
         return switcher.get(currenttext,'Error: unknown time frame')
 
-    def generateFilteredData(self,boollist): 
-        FilteredData =[]
+    def generateFilteredData(self,boollist):
+        FilteredData = []
         self.currententryIDs = []
         for i in range(len(boollist)):
             if boollist[i]:
-                self.currententryIDs.append(self.rawsitedata[i][0]) ## entryid used here too
+                self.currententryIDs.append(self.rawsitedata[i][0])  # entryid used here too
                 FilteredData.append(self.sitedata[i])
         return FilteredData
 
     def applyFilters(self):
-       # print(self.times.currentText(),'has been selected')
-        self.thismonth = datetime.today().replace(day=1,hour = 0, minute= 0, second= 0, microsecond= 0)
-        self.sevendaysago = (datetime.today()-timedelta(days= 7)).replace(hour = 0, minute= 0, second= 0, microsecond= 0)
-        self.thisyear = datetime.today().replace(day=1,month=1,hour = 0, minute= 0, second= 0, microsecond= 0)
-        self.thisquarter = (datetime.today()-timedelta(days= 92)).replace(hour = 0, minute= 0, second= 0, microsecond= 0)
+        # print(self.times.currentText(),'has been selected')
+        self.thismonth = datetime.today().replace(day=1,hour=0, minute=0, second=0, microsecond=0)
+        self.sevendaysago = (datetime.today() - timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0)
+        self.thisyear = datetime.today().replace(day=1,month=1,hour=0, minute=0, second=0, microsecond=0)
+        self.thisquarter = (datetime.today() - timedelta(days=92)).replace(hour=0, minute=0, second=0, microsecond=0)
        
         sitefilter = self.sites.currentText()
         timefilter = self.times.currentText()
@@ -335,23 +331,21 @@ class viewTab(QWidget):
 
     def combine(self,list1,list2):
         combined = []
-        for i in range (len(list1)):  #should be same length
+        for i in range(len(list1)):  # should be same length
             if list1[i] and list2[i]:
                 combined.append(True)
             else:
                 combined.append(False)
         return combined
 
-
-            
 #QApplication.setStyle(QtGui.QStyleFactory.create('cleanlooks'))    #work on making the appearance 'cleaner'
 app = QApplication(sys.argv)
 mainWindow = TabWidget()
 mainWindow.show()
 app.exec()
 
-#parameterise database, use filter map reduce, improve filtering method so that it isnt linear (need better time complexity)
-#add tooltips for hovering over an entry 
+#parameterise database, use filter map reduce, improve filtering method so that it isnt linear (need better time complexity)# noqa
+#add tooltips for hovering over an entry
 
 
 #add a thing which shows up when someone trys to press edit without selecting anything first

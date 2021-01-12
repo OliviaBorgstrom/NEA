@@ -1,7 +1,7 @@
 import psycopg2
 
 
-def fetchLocations(port):  # for windows test inputting the port as host 
+def fetchLocations(port):  # for windows test inputting the port as host
     con = psycopg2.connect(database="livi", user="livi", password="Pass1234",host=port)
     #print("Database opened successfully")
     cur = con.cursor()
@@ -31,7 +31,7 @@ def editExisting(port, inputdate, locationid, avrglass, avrpaper, avrplastic, en
     #print("Database opened successfully")
     cur = con.cursor()
     parameters = '''
-    UPDATE sitedata 
+    UPDATE sitedata
     SET date = %s, locationid = %s, avrglass = %s, avrpaper = %s, avrplastic = %s
     WHERE entryid = %s;'''
     data = (str(inputdate), locationid, avrglass, avrpaper, avrplastic, entryID)
