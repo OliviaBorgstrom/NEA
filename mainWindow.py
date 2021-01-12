@@ -242,13 +242,11 @@ class viewTab(QWidget):
         return bottomWidget
 
     def refresh(self,func):
-        def wrapper(self):
+        def wrapper():
             func() 
-            print(self.rawlocations)
-            self.rawlocations = fetchLocations("Localhost")
             self.rawsitedata = fetchSitedata("Localhost")
             self.formatFromDB(self.rawlocations,self.rawsitedata)
-            self.applyFilters
+            self.applyFilters()
         return wrapper
     
     
@@ -284,6 +282,8 @@ class viewTab(QWidget):
     def formatFromDB(self,locationdata, sitedata):
         self.locations,self.siteIDs = [location[1] for location in locationdata],[location[0] for location in locationdata]
         self.sitedata= [(str(site[1]),site[2],str(site[3]),str(site[4]),str(site[5])) for site in sitedata]
+        #print(self.locations)
+        #print(self.sitedata)
 
     def timeSwitcher(self):
         currenttext = self.times.currentText()
@@ -305,7 +305,7 @@ class viewTab(QWidget):
         return FilteredData
 
     def applyFilters(self):
-        print(self.times.currentText(),'has been selected')
+       # print(self.times.currentText(),'has been selected')
         self.thismonth = datetime.today().replace(day=1,hour = 0, minute= 0, second= 0, microsecond= 0)
         self.sevendaysago = (datetime.today()-timedelta(days= 7)).replace(hour = 0, minute= 0, second= 0, microsecond= 0)
         self.thisyear = datetime.today().replace(day=1,month=1,hour = 0, minute= 0, second= 0, microsecond= 0)
@@ -328,7 +328,7 @@ class viewTab(QWidget):
         else:
             timebool = self.timeSwitcher()
             tfilter = [timebool <= datetime.strptime(self.sitedata[i][0], '%Y-%m-%d') for i in range(len(self.sitedata))]
-
+        #print(tfilter,sfilter)
         combinedfilter = self.combine(tfilter,sfilter)
         filteredData = self.generateFilteredData(combinedfilter)
         self.appendToTable(filteredData)

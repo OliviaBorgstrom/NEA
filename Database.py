@@ -3,7 +3,7 @@ import psycopg2
 
 def fetchLocations(port):  # for windows test inputting the port as host 
     con = psycopg2.connect(database="livi", user="livi", password="Pass1234",host=port)
-    print("Database opened successfully")
+    #print("Database opened successfully")
     cur = con.cursor()
     cur.execute('''SELECT * FROM vw_locations;''')
     rows = cur.fetchall()
@@ -15,7 +15,7 @@ def fetchLocations(port):  # for windows test inputting the port as host
 
 def fetchSitedata(port):  # still need windows option
     con = psycopg2.connect(database="livi", user="livi", password="Pass1234",host=port)
-    print("Database opened successfully")
+    #print("Database opened successfully")
     cur = con.cursor()
     cur.execute('''SELECT entryid,date,name,avrglass,avrpaper,avrplastic FROM sitedata
     INNER JOIN locations

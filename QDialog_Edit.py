@@ -13,7 +13,8 @@ class EditDialog(QDialog):
         self.setWindowTitle("Editing an entry...")
         self.setFixedSize(600,100)
         self.rowdata = rowdata
-        locations.pop(0)
+        if locations[0] == 'All':
+            locations.pop(0)
         self.locations = locations
         self.entryid = entryid
         self.siteids = siteids
@@ -37,6 +38,7 @@ class EditDialog(QDialog):
 
         self.siteDropDown = QComboBox()
         self.siteDropDown.addItems(self.locations)
+        self.siteDropDown.setCurrentIndex(self.locations.index(self.rowdata[1]))  # set it to be current site id index
 
         self.glassEdit = QSpinBox()
         self.paperEdit = QSpinBox()
