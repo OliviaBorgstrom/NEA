@@ -46,40 +46,87 @@ class TabWidget(QWidget):
         self.setWindowTitle("NEL Wastebase")
         self.setWindowIcon(QIcon("gearicon.jpg"))
         self.setGeometry(300,150,700,500)  # x,y,width,height
-
-        tabmenu = QTabWidget()
+        self.tabmenu = QTabWidget()
         #tabmenu.setTabsClosable(True)
-        tabs = [[homeTab(),"home"],[createTab(),'create'],[importTab(),'import'],[viewTab(),'view']]
+        tabs = [[homeTab(self),"home"],[createTab(),'create'],[importTab(),'import'],[viewTab(),'view']]
         for i in range(len(tabs)):
-            tabmenu.addTab(tabs[i][0],tabs[i][1])
-
+            self.tabmenu.addTab(tabs[i][0],tabs[i][1])
+    
         # tabmenu is a PyQt5 widget which allows for tabs to be set out
         mainbox = QVBoxLayout()
-        mainbox.addWidget(tabmenu)
+        mainbox.addWidget(self.tabmenu)
         self.setLayout(mainbox)
+    
+    def inserthelp(self):
+        self.tabmenu.insertTab(4,helpTab(self),"help")
+        self.tabmenu.setCurrentIndex(4)
+    
+    def closehelp(self):
+        self.tabmenu.removeTab(4)
+        self.tabmenu.setCurrentIndex(0)
 
         # mainbox is the encompassing layout for the whole window, the tabs are added to a box.
 
 class homeTab(QWidget):
-    def __init__(self):
+    def __init__(self,tabobject):
         super().__init__()
         homebox = QVBoxLayout()
-        WelcomeLabel = QLabel('Welcome to the NELincs Waste Manager')
-        WelcomeLabel.setStyleSheet("font: bold 20pt AGENTORANGE")
         # WelcomeLabel.resize(, 25)
-        WelcomeLabel.setAlignment(QtCore.Qt.AlignCenter)
+        #WelcomeLabel.setAlignment(QtCore.Qt.AlignCenter)
+        self.initWelcomeGroup(tabobject)
+        self.initImportGroup()
+        self.initSettingsGroup()
+
+        homebox.addWidget(self.welcomegroup)
+        homebox.addWidget(self.importgroup)
+        homebox.addWidget(self.settingsgroup)
     
+        self.setLayout(homebox)
+
+    def initWelcomeGroup(self,tabobject):
+        print(tabobject)
+        self.welcomegroup = QGroupBox('Welcome to the NELincs Waste Manager')
+        #self.welcomegroup.setStyleSheet(("font: bold 10pt AGENTORANGE"))
+
         HButtons = QHBoxLayout()
         Seereports = QPushButton('See past reports')
         Seereports.clicked.connect(self.openfile)
         
         Gethelp = QPushButton('How to get started?')
+        Gethelp.clicked.connect(tabobject.inserthelp)
+        SiteSettings = QPushButton('Manage your sites')
+        
         HButtons.addWidget(Seereports)
         HButtons.addWidget(Gethelp)
+        HButtons.addWidget(SiteSettings)
 
-        homebox.addWidget(WelcomeLabel)
-        homebox.addLayout(HButtons)
-        self.setLayout(homebox)
+        self.welcomegroup.setLayout(HButtons)
+
+    def initImportGroup(self):
+        self.importgroup = QGroupBox('Import some new data')
+        HButtons = QHBoxLayout()
+        
+        fromFile = QPushButton('Import from file')
+        
+        autoDetect = QPushButton('Automatically detect your files')
+        
+        HButtons.addWidget(fromFile)
+        HButtons.addWidget(autoDetect)
+
+        self.importgroup.setLayout(HButtons)
+
+    def initSettingsGroup(self):
+        self.settingsgroup = QGroupBox('Some general settings')
+        HButtons = QHBoxLayout()
+        
+        #fromFile = QPushButton('')
+        
+        #autoDetect = QPushButton('Automatically detect your files')
+        
+        #HButtons.addWidget(fromFile)
+        #HButtons.addWidget(autoDetect)
+
+        self.importgroup.setLayout(HButtons)
         
     def openfile(self):
         if platform.system() == 'Linux':    # for my cross system development
@@ -152,7 +199,7 @@ class importTab(QWidget):
         importbox.addLayout(HButtons)
         self.setLayout(importbox)
 
-class viewTab(QWidget):
+class viewTab(QWidget):  # done now other than some improvements and potentially an 'Add' button
     def __init__(self):
         super().__init__()
         #filters = ['Location','From past:'] if i decide to add more filters
@@ -338,16 +385,29 @@ class viewTab(QWidget):
                 combined.append(False)
         return combined
 
+class helpTab(QWidget):
+    def __init__(self,tabobject):
+        super().__init__()
+        self.closetab = QPushButton('Close and contine')
+        self.closetab.clicked.connect(tabobject.closehelp)
+        self.vbox = QVBoxLayout()
+        self.vbox.addWidget(self.closetab)
+        self.setLayout(self.vbox)
+
 #QApplication.setStyle(QtGui.QStyleFactory.create('cleanlooks'))    #work on making the appearance 'cleaner'
 app = QApplication(sys.argv)
 mainWindow = TabWidget()
+#mainWindow.inserthelp()
 mainWindow.show()
 app.exec()
 
-#parameterise database, use filter map reduce, improve filtering method so that it isnt linear (need better time complexity)# noqa
+#use filter map reduce, improve filtering method so that it isnt linear (need better time complexity)
 #add tooltips for hovering over an entry
 
 
 #add a thing which shows up when someone trys to press edit without selecting anything first
-#need to make the page refresh when a dialog is closed
-#make to add the 'Add feature' for adding an entry manually
+#need to make the page refresh when a dialog is closed - done but also refresesh on cancel or no changes
+#make to add the 'Add feature' for adding an entry
+
+#if it has 0 bins it shouldnt be editable at that site
+#change the button in help to a cross? if possible
