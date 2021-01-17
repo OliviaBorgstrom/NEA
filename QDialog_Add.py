@@ -2,24 +2,23 @@ from PyQt5.QtWidgets import * # noqa
 from PyQt5.QtGui import QIcon
 from PyQt5 import QtCore
 from PyQt5 import QtGui
-from Database import fetchLocations,fetchSitedata,editExisting
+from Database import addTo
 import sys
 from datetime import datetime
 
-class EditDialog(QDialog):
+class AddDialog(QDialog):
 
-    def __init__(self, rowdata, locations, entryid, siteids):
-        super(EditDialog, self).__init__()
-        self.setWindowTitle("Editing an entry...")
+    def __init__(self, locations,siteids):
+        super(AddDialog, self).__init__()
+        self.setWindowTitle("Adding a new entry...")
         self.setFixedSize(600,100)
-        self.rowdata = rowdata
         if locations[0] == 'All':
             locations.pop(0)
         self.locations = locations
-        self.entryid = entryid
         self.siteids = siteids
         self.initeditingBoxes()
-      
+        
+
         buttons = QDialogButtonBox.Save | QDialogButtonBox.Cancel  # change this so that it doesnt trigger when pressing enter
 
         self.buttonBox = QDialogButtonBox(buttons)
@@ -33,12 +32,10 @@ class EditDialog(QDialog):
 
     def initeditingBoxes(self):
         self.dateEdit = QDateEdit()
-        self.dateEdit.setDate(datetime.strptime(self.rowdata[0], '%Y-%m-%d'))
+        self.dateEdit.setDate(datetime.today())
 
         self.siteDropDown = QComboBox()
-        self.siteDropDown.addItems(self.locations)
-        self.siteDropDown.setCurrentIndex(self.locations.index(self.rowdata[1]))  # set it to be current site id index
-
+        self.siteDropDown.addItems(self.locations) 
         self.glassEdit = QSpinBox()
         self.paperEdit = QSpinBox()
         self.plasticEdit = QSpinBox()
@@ -49,7 +46,6 @@ class EditDialog(QDialog):
         self.editGroup.addWidget(self.siteDropDown)
        
         for i in range(len(boxes)):
-            boxes[i].setValue(int(self.rowdata[i + 2]))
             boxes[i].setMaximum(100)  # cant have more than 100%
             self.editGroup.addWidget(boxes[i])
     
@@ -57,11 +53,10 @@ class EditDialog(QDialog):
         self.reject()
    
     def saveToDatabase(self):
-        self.selectedlocation = self.siteids[self.siteDropDown.currentIndex()]  # we didnt need to get the siteids could have just used index
+        self.selectedlocation = self.siteids[self.siteDropDown.currentIndex()]  # we didnt need to get the siteids could have just used index + 1 i think
         dateboxvalue = self.dateEdit.date()
-        #print(dateboxvalue)
         self.date = dateboxvalue.toPyDate()
-        editExisting("Localhost",self.date,self.selectedlocation,self.glassEdit.value(), self.paperEdit.value(), self.plasticEdit.value(), self.entryid)
+        addTo("Localhost",self.date,self.selectedlocation,self.glassEdit.value(), self.paperEdit.value(), self.plasticEdit.value())
         self.accept()
             
 #fix the resizing so that a person cant resize the editing window, but it still autoexpands to the right size

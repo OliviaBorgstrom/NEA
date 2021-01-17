@@ -5,7 +5,7 @@ def fetchLocations(port):  # for windows test inputting the port as host
     #print("Database opened successfully")
 
     cur = con.cursor()
-    cur.execute('''SELECT * FROM vw_locations;''')
+    cur.execute('''SELECT * FROM locations;''')
     rows = cur.fetchall()
     con.close()
     #locations = list(rows[i][1] for i in range(len(rows)))
@@ -36,3 +36,17 @@ def editExisting(port, inputdate, locationid, avrglass, avrpaper, avrplastic, en
     cur.execute(parameters, data)
     con.commit()
     con.close()
+
+def addTo(port,inputdate, locationid, avrglass, avrpaper, avrplastic):
+    con = psycopg2.connect(database="livi", user="livi", password="Pass1234",host=port)
+    #print("Database opened successfully")
+    cur = con.cursor()
+    parameters = '''
+    INSERT INTO sitedata(date,locationid,avrglass,avrpaper,avrplastic)
+    VALUES(%s,%s,%s,%s,%s);'''
+    data = (str(inputdate), locationid, avrglass, avrpaper, avrplastic)
+    cur.execute(parameters, data)
+    con.commit()
+    con.close()
+
+#i think it would break if the database was empty for sitedata

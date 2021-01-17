@@ -5,6 +5,7 @@ from PyQt5 import QtGui
 from Database import fetchLocations,fetchSitedata
 from datetime import datetime,timedelta
 from QDialog_Edit import EditDialog
+from QDialog_Add import AddDialog
 import sys
 import os
 import platform
@@ -278,10 +279,18 @@ class viewTab(QWidget):  # done now other than some improvements and potentially
         self.validRowSelected = False
         self.editButton.setToolTip('Select a row then press edit')
         self.editButton.setFixedSize(QtCore.QSize(120,30))
-        self.editButton.clicked.connect(self.refresh(self.execute))
+        self.editButton.clicked.connect(self.refresh(self.executeEdit))
+
+        self.addButton = QPushButton('Add')
+        self.addButton.setToolTip('Manually type a new Entry')
+        self.addButton.setFixedSize(QtCore.QSize(120,30))
+        self.addButton.clicked.connect(self.refresh(self.executeAdd))
        
         bottomWidget.addWidget(self.dataTable, 0, 0)
         bottomWidget.addWidget(self.editButton,1,0)
+        bottomWidget.addWidget(self.addButton,1,0)
+        
+        bottomWidget.addLayout(self.editButton),1,0)
         
         return bottomWidget
 
@@ -305,12 +314,16 @@ class viewTab(QWidget):  # done now other than some improvements and potentially
             #print(self.currentRowSelected)
 
     #@refresh
-    def execute(self):
+    def executeEdit(self):
         if not self.validRowSelected:
             return
         else:
             self.Ewindow = EditDialog(self.currentRowSelected,self.locations, self.selectedEntryID, self.siteIDs)
             self.Ewindow.exec()
+    
+    def executeAdd(self):
+        self.Awindow = AddDialog(self.locations, self.siteIDs)
+        self.Awindow.exec()
     
     def appendToTable(self,data):
         self.dataTable.clearContents()
