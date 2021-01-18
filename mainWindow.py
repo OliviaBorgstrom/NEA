@@ -288,9 +288,7 @@ class viewTab(QWidget):  # done now other than some improvements and potentially
        
         bottomWidget.addWidget(self.dataTable, 0, 0)
         bottomWidget.addWidget(self.editButton,1,0)
-        bottomWidget.addWidget(self.addButton,1,0)
-        
-        bottomWidget.addLayout(self.editButton),1,0)
+        bottomWidget.addWidget(self.addButton,1,1)
         
         return bottomWidget
 
