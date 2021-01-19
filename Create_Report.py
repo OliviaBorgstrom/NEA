@@ -2,41 +2,87 @@ from Database import fetchspecificLocations, fetchbetweendates
 from datetime import datetime, date, timedelta
 import pygal
 from collections import OrderedDict
+import math
 
-class siteAnalysis(object):
-    def __init__(self,siteinfo,latest,oldest,datefrom):
-        self.sitename = siteinfo[0]
-        self.amtplasticbin = siteinfo[1]
-        self.amtpaperbin = siteinfo[2]
-        self.amtglassbin = siteinfo[3]
+class array_circ(object):
+    def __init__(self,data,pointer):
+        self.data = data
+        self.pointer = pointer
+    
+    def __str__(self):
+        return self.data
+    
+    def current(self):
+        return self.data[self.pointer]
+    
+    def __movepointerup(self):
+        if self.pointer == len(self.data) - 1:
+            self.pointer == 0
+        else:
+            self.pointer += 1
+
+    def __movepointerdown(self):
+        if self.pointer == 0:
+            self.pointer = len(self.data) - 1
+        else:
+            self.pointer -= 1
+
+    def getto(self,index):  # index the amount away from current position
+        slicelst = []
+        slicelst.append(self.data[self.pointer])  # i want it to include the current month
+        if index > 0:
+            for i in range(abs(index)):
+                self.__movepointerup()
+                slicelst.append(self.data[self.pointer])
+        elif index < 0:
+            for i in range(abs(index)):
+                self.__movepointerdown()
+                slicelst.append(self.data[self.pointer])
+        else:
+            return slicelst
+        return slicelst
+    
+    # will make another function to get between two values, or set pointer to somewhere then getto
+            
+class siteAnalysis(object):  # right now this only works with reports starting from today, i should support other times too
+    def __init__(self,siteinfo,datefrom,entries,reporttype):  # latest, oldest ?
+        self.entries = entries
+        self.reporttype = reporttype
+        self.datefrom = datefrom
+        self.months = array_circ(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],(datetime.today().month - 1))
+        self.sitename = siteinfo[1]
+        self.amtplasticbin = siteinfo[2]
+        self.amtpaperbin = siteinfo[3]
+        self.amtglassbin = siteinfo[4]
+        
+
        
-        self.latestplastic = latest[0]
-        self.latestpaper = latest[1]
-        self.latestglass = latest[2]
+        #self.latestplastic = latest[0]  # these were for potentially showing the start --> end values
+        #self.latestpaper = latest[1]
+        #self.latestglass = latest[2]
 
-        self.oldestplastic = oldest[0]
-        self.oldestpaper = oldest[1]
-        self.oldestglass = oldest[2]
+        #self.oldestplastic = oldest[0]
+        #self.oldestpaper = oldest[1]
+        #self.oldestglass = oldest[2]
     
         self.initTimes()
+        self.generategraphpng(entries,'dummypath')
+        self.generatexvalues()
 
         # maybe have an overall site usage - e.g calculate the mean usage over time
         # and mean usage total over the time period
+        # bubble chart at end of report showing most and least used sites 'means'
     
     def initTimes(self):
         self.thismonth = datetime.today().replace(day=1,hour=0, minute=0, second=0, microsecond=0)
         self.thisyear = datetime.today().replace(day=1,month=1,hour=0, minute=0, second=0, microsecond=0)
         self.sevendaysago = (datetime.today() - timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0)
-        self.past12months = (datetime.today() - timedelta(months=12)).replace(day=1,hour=0, minute=0, second=0, microsecond=0)
-        self.past30days = (datetime.today() - timedelta(days=30)).replace(day=1,hour=0, minute=0, second=0, microsecond=0)
-        
-        print(self.thismonth,self.thisyear,self.sevendaysago,self.past12months,self.past30days)
+        self.past12months = (datetime.today() - timedelta(days=365)).replace(day=1,hour=0, minute=0, second=0, microsecond=0)
+        self.past30days = (datetime.today() - timedelta(days=30)).replace(hour=0, minute=0, second=0, microsecond=0)
 
-    def generatereportpath(self,reporttype):
-        today = (str((datetime.today()))[:-7]).replace(' ','_')
-        filename = 'report' + '-' + date + '.pdf'
-        path = '/home/livi/NEA/Past_Reports/' + filename
-        
+    def gettitle(self):
+        return self.sitename
+
     def generategraphpng(self,data,path):  # path to save
         self.usage_chart = pygal.DateLine(x_label_rotation=25)
         self.usage_chart.title = 'Usage over time for ' + self.sitename
@@ -44,8 +90,41 @@ class siteAnalysis(object):
         self.usage_chart.show_x_guides = True  # show grid lines for both axis
         self.usage_chart.show_y_guides = True
     
-    def generatexvalues(self,datefrom):
+    def months_since(self,target):  # can make this months between eventually
+        today = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0) 
+        num_months = (today.year - target.year) * 12 + (today.month - target.month)
+        return num_months
+
+    def generatexvalues(self):
+        months_since = self.months_since(self.datefrom)
+        if months_since == 0:
+            self.checkweeklymonthly()
+        else:
+            monthlist = self.months.getto((0 - months_since))
+            print(monthlist)
+
+    def checkweeklymonthly(self):
+        pass
         
+    def presetxvalues(self,reporttype):
+        switcher = {
+            'This Year':self.thisyear_x(),
+            'Past 7 Days':self.sevendays_x(),
+            'This Month': self.thismonth_x(),
+            'This Quarter': self.thisquarter_x()
+        }
+        return switcher.get(reporttype,'Error: unknown time frame')
+    
+    def thisyear_x(self):
+        pass
+    
+    def thismonth_x(self):
+        pass
+
+    def sevendays_x(self):
+        pass
+
+    def thisquarter_x(self):
         pass
 
     def generatemeandata(self,label,data):
@@ -57,40 +136,41 @@ class siteAnalysis(object):
 def callAnalysis(datefrom,sitestoinclude):  # sitestoinclude has to be a tuple, and in alphabetical order
     sitestoinclude = tuple(sitestoinclude)
     locationdata = fetchspecificLocations("Localhost", sitestoinclude)
-    sitedata = fetchbetweendates("Localhost",datefrom,sitestoinclude)
-    
+    sitedata = fetchbetweendates("Localhost",datefrom,sitestoinclude)  # filtering out locations where no data is found
+
     namesonly = [site[1] for site in sitedata]  # site 1 is the name
     sitesincluded = list(OrderedDict.fromkeys(namesonly))  # dictionaries cant have any duplicates so useful here
+    locationdata_filtd = [i for i in locationdata if i[1] in sitesincluded]
+
     sitedata_split = sublists(sitesincluded,sitedata,namesonly)  #
     
-    print(sitedata_split)
-    #graphobj1 = siteAnalysis(locationdata)
-    #mapobj = list(list(map(Filter,sitestoinclude,sitedata)))
+    graphobjects = []
+    for i in range(len(sitesincluded)):
+        graphobjects.append(siteAnalysis(locationdata_filtd[i],datefrom,sitedata_split[i],'yearly'))
+    
 
 def sublists(lookfor,lst,namesonly):  # sitedata has been alphabetically ordered by name
     newlist = []
     startpos = 0
     if len(lookfor) > 1:
         for i in range(len(lookfor) - 1):
-            print(lookfor[i])
             endpos = namesonly.index(lookfor[i + 1])
-            print(endpos)
             newlist.append(lst[startpos:endpos])
             startpos = endpos
-    print(lst)
     endpos = len(lst)
-    print(startpos,endpos)
     newlist.append(lst[startpos:endpos])
     return newlist
     
 #when using this on another computer, need to find the path of the current file name to save there
-
-print(datetime.today().replace(day=1,month=1,hour=0, minute=0, second=0, microsecond=0))
-callAnalysis(datetime.today().replace(day=1,month=1,hour=0, minute=0, second=0, microsecond=0),['Asda Ellis Way','Beeston Street','Pier','Boating lake'])
-
-#print(datetime.today - 2)
+#callAnalysis(datetime.today().replace(day=1,month=1,hour=0, minute=0, second=0, microsecond=0),['Asda Ellis Way','Beeston Street','Pier','Boating lake'])
+callAnalysis(date(2020,5,30),['Asda Ellis Way','Beeston Street','Pier','Boating lake'])  # maybe i can make an advanced customisability at some point
 # slightly problematically, pygal uses utc time by default -- might not cause any issues still
 
 # have a 'this month feature', 'past 30 days feature'
 # search the lists using re, regular expression
 # sites to include must be alpha
+
+#def generatereportpath(self,reporttype):    #  i think this would go into the report class
+#today = (str((datetime.today()))[:-7]).replace(' ','_')
+#filename = 'report' + '-' + date + '.pdf'
+#path = '/home/livi/NEA/Past_Reports/' + filename

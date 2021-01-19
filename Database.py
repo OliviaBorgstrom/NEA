@@ -6,7 +6,7 @@ def fetchLocations(port):  # for windows test inputting the port as host
     #print("Database opened successfully")
 
     cur = con.cursor()
-    cur.execute('''SELECT * FROM locations;''')
+    cur.execute('''SELECT * FROM locations;''')  # might want to add - order by name ASC (not sure if would break)
     rows = cur.fetchall()
     con.close()
     #locations = list(rows[i][1] for i in range(len(rows)))
@@ -17,7 +17,8 @@ def fetchspecificLocations(port,sitelist):  # for windows test inputting the por
     con = psycopg2.connect(database="livi", user="livi", password="Pass1234",host=port)
     cur = con.cursor()
     parameters = '''SELECT * FROM locations
-    WHERE name IN %s;'''
+    WHERE name IN %s
+    ORDER BY name ASC;'''
     cur.execute(parameters,(sitelist,))
     rows = cur.fetchall()
     con.close()
