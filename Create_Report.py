@@ -91,12 +91,17 @@ class siteAnalysis(object):  # right now this only works with reports starting f
         self.usage_chart.show_x_guides = True  # show grid lines for both axis
         self.usage_chart.show_y_guides = True
         self.usage_chart.__init__
-        self.usage_chart.add("Plastic", [
-            (date(2020, 1, 2), 30),
-            (date(2020, 8, 15), 75),
-            (date(2020, 12, 7), 50),
-            (date(2020, 3, 21), 100)])
-        
+
+        print(self.entries)
+
+        Plastic = [(entry[0],entry[2]) for entry in self.entries]
+        Paper = [(entry[0],entry[3]) for entry in self.entries]
+        Glass = [(entry[0],entry[4]) for entry in self.entries]
+
+        self.usage_chart.add("Plastic",Plastic)
+        self.usage_chart.add("Paper",Paper)
+        self.usage_chart.add("Glass",Glass)
+
         self.usage_chart.render_to_png((self.sitename).replace(' ','_') + '.png')
     
     def months_since(self,target):  # can make this months between when needed
@@ -172,7 +177,7 @@ def sublists(lookfor,lst,namesonly):  # sitedata has been alphabetically ordered
     
 #when using this on another computer, need to find the path of the current file name to save there
 #callAnalysis(datetime.today().replace(day=1,month=1,hour=0, minute=0, second=0, microsecond=0),['Asda Ellis Way','Beeston Street','Pier','Boating lake'])
-callAnalysis(date(2019,1,1),['Asda Ellis Way','Beeston Street','Pier','Boating lake'])  # maybe i can make an advanced customisability at some point
+callAnalysis(date(2020,11,1),['Asda Ellis Way','Beeston Street','Pier','Boating lake'])  # maybe i can make an advanced customisability at some point
 # slightly problematically, pygal uses utc time by default -- might not cause any issues still
 
 # have a 'this month feature', 'past 30 days feature'
