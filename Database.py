@@ -1,6 +1,17 @@
 import psycopg2
 from datetime import datetime
 
+def deleteEntry(port,entryID):
+    con = psycopg2.connect(database="livi", user="livi", password="Pass1234",host=port)
+    #print("Database opened successfully")
+    cur = con.cursor()
+    parameters = '''
+    DELETE FROM sitedata
+    WHERE entryid = %s;'''
+    cur.execute(parameters, [entryID])
+    con.commit()
+    con.close()
+
 def fetchLocations(port):  # for windows test inputting the port as host
     con = psycopg2.connect(database="livi", user="livi", password="Pass1234",host=port)
     #print("Database opened successfully")

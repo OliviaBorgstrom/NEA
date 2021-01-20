@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import * # noqa
 from PyQt5.QtGui import QIcon
 from PyQt5 import QtCore
 from PyQt5 import QtGui
-from Database import fetchLocations,fetchSitedata
+from Database import fetchLocations,fetchSitedata,deleteEntry
 from datetime import datetime,timedelta
 from QDialog_Edit import EditDialog
 from QDialog_Add import AddDialog
@@ -285,11 +285,21 @@ class viewTab(QWidget):  # done now other than some improvements and potentially
         self.addButton.setToolTip('Manually type a new Entry')
         self.addButton.setFixedSize(QtCore.QSize(120,30))
         self.addButton.clicked.connect(self.refresh(self.executeAdd))
-       
-        bottomWidget.addWidget(self.dataTable, 0, 0)
-        bottomWidget.addWidget(self.editButton,1,0)
-        bottomWidget.addWidget(self.addButton,1,1)
+
+        self.deleteButton = QPushButton('Delete')
+        self.deleteButton.setToolTip('Delete an entry')
+        self.deleteButton.setFixedSize(QtCore.QSize(120,30))
+        self.deleteButton.clicked.connect(self.refresh(self.executeDelete))
         
+        alignButtons = QHBoxLayout()
+        alignButtons.addWidget(self.editButton)
+        alignButtons.addWidget(self.addButton)
+        alignButtons.addWidget(self.deleteButton)
+        alignButtons.addStretch(1)
+        
+        bottomWidget.addWidget(self.dataTable, 0, 0)
+        bottomWidget.addLayout(alignButtons,1,0)
+    
         return bottomWidget
 
     def refresh(self,func):
@@ -322,6 +332,12 @@ class viewTab(QWidget):  # done now other than some improvements and potentially
     def executeAdd(self):
         self.Awindow = AddDialog(self.locations, self.siteIDs)
         self.Awindow.exec()
+    
+    def executeDelete(self):
+        if not self.validRowSelected:
+            return
+        else:
+            deleteEntry("Localhost",self.selectedEntryID)
     
     def appendToTable(self,data):
         self.dataTable.clearContents()
@@ -422,3 +438,7 @@ app.exec()
 
 #if it has 0 bins it shouldnt be editable at that site
 #change the button in help to a cross? if possible
+
+#make delete button with an are you sure thing
+
+#on the add dialog, put lables above the plastic peper glass ect 
