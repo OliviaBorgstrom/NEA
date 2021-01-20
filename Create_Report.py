@@ -92,11 +92,14 @@ class siteAnalysis(object):  # right now this only works with reports starting f
         self.usage_chart.show_y_guides = True
         self.usage_chart.__init__
 
-        print(self.entries)
+        #print(self.entries)
 
         Plastic = [(entry[0],entry[2]) for entry in self.entries]
+        Plastic = self.quicksort(Plastic)
         Paper = [(entry[0],entry[3]) for entry in self.entries]
+        Paper = self.quicksort(Paper)
         Glass = [(entry[0],entry[4]) for entry in self.entries]
+        Glass = self.quicksort(Glass)
 
         self.usage_chart.add("Plastic",Plastic)
         self.usage_chart.add("Paper",Paper)
@@ -104,7 +107,25 @@ class siteAnalysis(object):  # right now this only works with reports starting f
 
         self.usage_chart.render_to_png((self.sitename).replace(' ','_') + '.png')
     
+    def quicksort(self,listtosort): # this is temporary, i will choose a better algorithm 
+        sortedlist = []
+        justdates = [entry[0] for entry in listtosort]
+        tempjustdates = [entry[0] for entry in listtosort]
+        #print(justdates)
+        i = len(tempjustdates)
+        while i > 0:
+            minim = min(tempjustdates)
+            sortedlist.append(listtosort[justdates.index(minim)])
+            tempjustdates.pop(tempjustdates.index(minim))
+            i = len(tempjustdates)
+        return sortedlist
+
+
     def months_since(self,target):  # can make this months between when needed
+        num_months = (self.dateto.year - target.year) * 12 + (self.dateto.month - target.month)
+        return num_months
+    
+    def days_since(self,target):
         num_months = (self.dateto.year - target.year) * 12 + (self.dateto.month - target.month)
         return num_months
 
@@ -187,4 +208,6 @@ callAnalysis(date(2020,11,1),['Asda Ellis Way','Beeston Street','Pier','Boating 
 #def generatereportpath(self,reporttype):    #  i think this would go into the report class
 #today = (str((datetime.today()))[:-7]).replace(' ','_')
 #filename = 'report' + '-' + date + '.pdf'
-#path = '/home/livi/NEA/Past_Reports/' + filename
+#path = '/home/livi/NEA/Past_Reports/' +
+
+#need to sort the dates before appending so they are sorted in order
