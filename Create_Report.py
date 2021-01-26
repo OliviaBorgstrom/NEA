@@ -3,6 +3,7 @@ from datetime import datetime, date, timedelta
 import pygal
 from collections import OrderedDict
 import math
+from functools import reduce
 
 class array_circ(object):
     def __init__(self,data,pointer):
@@ -56,7 +57,8 @@ class array_circ(object):
 class siteAnalysis(object):  # right now this only works with reports starting from today, i should support other times too
     def __init__(self,siteinfo,datefrom,entries,reporttype):  # latest, oldest ?
         self.entries = entries
-        self.reporttype = reporttype
+        #print(self.entries)
+        self.reporttype = reporttype  # now unecessarry
         self.datefrom = datefrom
         self.dateto = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
         self.months = array_circ(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],(datetime.today().month - 1))
@@ -75,6 +77,8 @@ class siteAnalysis(object):  # right now this only works with reports starting f
     
         self.generatexvalues()
         self.generategraphpng(entries,'dummypath')
+        self.generatemeandata()
+        self.findtotalmean()
 
         # maybe have an overall site usage - e.g calculate the mean usage over time
         # and mean usage total over the time period
@@ -107,7 +111,7 @@ class siteAnalysis(object):  # right now this only works with reports starting f
 
         self.usage_chart.render_to_png((self.sitename).replace(' ','_') + '.png')
     
-    def quicksort(self,listtosort): # this is temporary, i will choose a better algorithm 
+    def quicksort(self,listtosort):  # this is temporary, i will choose a better algorithm
         sortedlist = []
         justdates = [entry[0] for entry in listtosort]
         tempjustdates = [entry[0] for entry in listtosort]
@@ -119,7 +123,6 @@ class siteAnalysis(object):  # right now this only works with reports starting f
             tempjustdates.pop(tempjustdates.index(minim))
             i = len(tempjustdates)
         return sortedlist
-
 
     def months_since(self,target):  # can make this months between when needed
         num_months = (self.dateto.year - target.year) * 12 + (self.dateto.month - target.month)
@@ -162,26 +165,48 @@ class siteAnalysis(object):  # right now this only works with reports starting f
     def checkweeklymonthly(self):
         pass
         
-    def generatemeandata(self,label,data):
-        pass  # find means of all the data entries
+    def generatemeandata(self):
+        sum_each = [reduce((lambda x,y: x + y),[self.entries[i][2],self.entries[i][3],self.entries[i][4]]) for i in range(len(self.entries))]
+        self.meandata = list(map((lambda x: x // 3),sum_each))
+        #print(self.meandata)
 
     def findtotalmean(self):
-        pass  # find the mean
+        n = len(self.meandata)
+        sum_one = reduce((lambda x,y: x + y),self.meandata)
+        self.totalmean = sum_one // n
+        #print(self.totalmean)
 
-def callAnalysis(datefrom,sitestoinclude):  # sitestoinclude has to be a tuple, and in alphabetical order
+class weeklyAnalysis(siteAnalysis):   # the style of the longer site analysis does not work so well with less values
+    def __init__(self):
+        pass
+
+    def generategraphpng():
+        # need to generate barcharts maybe instead
+        # the weekly report should be more like a comparison over all of the sites
+        pass
+
+class monthlyAnalysis(siteAnalysis):
+    def __init__(self):
+        pass
+
+    def generategraphpng():
+        # for the whole month, graphs could be appropriate, however other graphs may work better
+        pass
+
+def callAnalysis(datefrom,filteredlocations,sitestoinclude):  # sitestoinclude has to be a tuple, and in alphabetical order
     sitestoinclude = tuple(sitestoinclude)
-    locationdata = fetchspecificLocations("Localhost", sitestoinclude)
+    print(filteredlocations)
+    #locationdata = fetchspecificLocations("Localhost", sitestoinclude)  # can remove this and just give the relevent location data
     sitedata = fetchbetweendates("Localhost",datefrom,sitestoinclude)  # filtering out locations where no data is found
 
-    namesonly = [site[1] for site in sitedata]  # site 1 is the name
-    sitesincluded = list(OrderedDict.fromkeys(namesonly))  # dictionaries cant have any duplicates so useful here
-    locationdata_filtd = [i for i in locationdata if i[1] in sitesincluded]
+    available_sites = [site[1] for site in sitedata]  # site 1 is the name
+    sitesincluded = list(OrderedDict.fromkeys(available_sites))  # dictionaries cant have any duplicates so useful here
 
-    sitedata_split = sublists(sitesincluded,sitedata,namesonly)  #
+    sitedata_split = sublists(sitesincluded,sitedata,available_sites)  #
     
     graphobjects = []
     for i in range(len(sitesincluded)):
-        graphobjects.append(siteAnalysis(locationdata_filtd[i],datefrom,sitedata_split[i],'yearly'))
+        graphobjects.append(siteAnalysis(filteredlocations[i],datefrom,sitedata_split[i],'yearly'))
     
 
 def sublists(lookfor,lst,namesonly):  # sitedata has been alphabetically ordered by name
@@ -198,7 +223,7 @@ def sublists(lookfor,lst,namesonly):  # sitedata has been alphabetically ordered
     
 #when using this on another computer, need to find the path of the current file name to save there
 #callAnalysis(datetime.today().replace(day=1,month=1,hour=0, minute=0, second=0, microsecond=0),['Asda Ellis Way','Beeston Street','Pier','Boating lake'])
-callAnalysis(date(2020,11,1),['Asda Ellis Way','Beeston Street','Pier','Boating lake'])  # maybe i can make an advanced customisability at some point
+#callAnalysis(date(2020,11,1),['Asda Ellis Way','Beeston Street','Pier','Boating lake'])  # maybe i can make an advanced customisability at some point
 # slightly problematically, pygal uses utc time by default -- might not cause any issues still
 
 # have a 'this month feature', 'past 30 days feature'
@@ -211,3 +236,7 @@ callAnalysis(date(2020,11,1),['Asda Ellis Way','Beeston Street','Pier','Boating 
 #path = '/home/livi/NEA/Past_Reports/' +
 
 #need to sort the dates before appending so they are sorted in order
+
+#this week vs the avarage week
+
+#why does this run when i start it, do i need one of those if name = __main__

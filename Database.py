@@ -17,7 +17,8 @@ def fetchLocations(port):  # for windows test inputting the port as host
     #print("Database opened successfully")
 
     cur = con.cursor()
-    cur.execute('''SELECT * FROM locations;''')  # might want to add - order by name ASC (not sure if would break)
+    cur.execute('''SELECT * FROM locations
+    ORDER BY name ASC;''')  # might want to add - order by name ASC (not sure if would break)
     rows = cur.fetchall()
     con.close()
     #locations = list(rows[i][1] for i in range(len(rows)))
