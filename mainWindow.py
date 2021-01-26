@@ -6,9 +6,12 @@ from Database import fetchLocations,fetchSitedata,deleteEntry
 from datetime import datetime,timedelta
 from QDialog_Edit import EditDialog
 from QDialog_Add import AddDialog
+from QDialog_Siteschoose import ChooseDialog
+from Create_Report import callAnalysis
 import sys
 import os
 import platform
+
 #QApplication, QDialog, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QTableWidget, QLabel, QLineEdit, QPushButton,
 #List of used modules
 
@@ -85,7 +88,6 @@ class homeTab(QWidget):
         self.setLayout(homebox)
 
     def initWelcomeGroup(self,tabobject):
-        print(tabobject)
         self.welcomegroup = QGroupBox('Welcome to the NELincs Waste Manager')
         #self.welcomegroup.setStyleSheet(("font: bold 10pt AGENTORANGE"))
 
@@ -138,47 +140,188 @@ class homeTab(QWidget):
 class createTab(QWidget):
     def __init__(self):
         super().__init__()
-        createbox = QVBoxLayout()
-        
-        chooseFromLabel = QLabel("Create a new report by choosing\nfrom the following:")
-        chooseFromLabel.setStyleSheet("font: 18pt AGENTORANGE")
-        chooseFromLabel.setAlignment(QtCore.Qt.AlignLeft)
+        self.datefromclicked = False  # notes if they have ever been pressed 
+        self.datetoclicked = False
+        self.usingpresets = True  # assume they are using presets by default
+        self.selectedpreset = 'Week'
+        self.toplayer = QVBoxLayout()
+        self.grid_alignleft = QGridLayout()
+        self.calendars_group = QGroupBox('Use Data between two dates:')
+        self.presetdate_group = QGroupBox('OR')
+        self.calendars_box = QGridLayout()
+        self.create_align = QHBoxLayout()
 
-        datesRow = self.initButtonRow("Use data from the past:",['Week','Month','Quarter','Year'])
+        self.initUI()
 
-        sitesRow = self.initButtonRow("Include:",['All Sites','Choose ...'])
+        self.setLayout(self.toplayer)
+    
+    def initUI(self):
+        chooseFromLabel = QLabel("Create a new report by choosing from the following:")
+        chooseFromLabel.setStyleSheet("font: 18pt")
+        self.grid_alignleft.addWidget(chooseFromLabel, 0, 0)
+        self.grid_alignleft.setColumnStretch(0, 1)
+        self.grid_alignleft.setRowStretch(1, 1)
+
+        self.calendar_from = self.initCalendar()
+        self.calendar_to = self.initCalendar()
+
+        self.label_from = QLabel('Date From: ')
+        self.label_to = QLabel('Date To: ')
+        self.calendar_to.setToolTip('You have to select a date from first')
+        self.setCalendarDisabled(self.calendar_to)
+        self.calendar_from.clicked.connect(self.fromdateSelected)
+        self.calendar_to.clicked.connect(self.todateSelected)
+        self.calendars_box.addWidget(self.label_from,1,0)
+        self.calendars_box.addWidget(self.label_to,1,1)
+        self.calendars_box.addWidget(self.calendar_from,0,0)
+        self.calendars_box.addWidget(self.calendar_to,0,1)
+        self.calendars_group.setLayout(self.calendars_box)
+
+        self.initdatesrow()
+        self.presetdate_group.setLayout(self.datesrow)
+
+        self.initsitesrow()
 
         createButton = QPushButton("Create")
-        createButton.setStyleSheet("font: 10pt AGENTORANGE")
+        createButton.setFixedSize(QtCore.QSize(120,30))
+        createButton.clicked.connect(self.createButtonClicked)
+        self.create_align.addWidget(createButton)
+        self.create_align.setAlignment(QtCore.Qt.AlignRight)
 
-        createbox.addWidget(chooseFromLabel,0)
-        createbox.addLayout(datesRow,1)
-        createbox.addLayout(sitesRow,2)
-        createbox.addWidget(createButton,3)
+        self.toplayer.addLayout(self.grid_alignleft)
+        self.toplayer.addWidget(self.calendars_group,1)
+        self.toplayer.addWidget(self.presetdate_group,2)
+        self.toplayer.addLayout(self.sitesrow,3)
+        self.toplayer.addLayout(self.create_align,4)
 
-        self.setLayout(createbox)
-
-    def initButtonRow(self,label,items):  # initialises layouts for dates and sites
-        HRow = QHBoxLayout()
-        HRowlabel = QLabel(label)
-        HRowlabel.setStyleSheet("font: 12pt AGENTORANGE")
-        HRowButtons = QButtonGroup()
-        HButtonslayout = QHBoxLayout()
-       
-        for i in range(len(items)):
-            tempbutton = QPushButton(items[i])
-            tempbutton.setStyleSheet("font: 10pt AGENTORANGE")
-            tempbutton.setCheckable(True)
-            HRowButtons.addButton(tempbutton)
-            HButtonslayout.addWidget(tempbutton)
+    def initdatesrow(self):
+        self.datesrow = QHBoxLayout()
+        self.deselectbutton = QPushButton('Deselect')
+        self.deselectbutton.setFixedSize(QtCore.QSize(120,30))
+        self.deselectbutton.setToolTip('Deselect this to use the calendar instead')
+        self.deselectbutton.clicked.connect(self.deselectbuttonpressed)
         
-        HRowButtons.setExclusive(True)
-        
-        HRow.addWidget(HRowlabel)
-        HRow.addLayout(HButtonslayout)
-        
-        return HRow
+        self.dateslabel = QLabel('Use data from:')
+        self.preset_dates = QComboBox()
+        self.preset_dates.addItems(['Past 7 Days','This Month','This Quarter','This Year'])
+        self.preset_dates.currentIndexChanged.connect(self.presetdateselected)
+        self.datesrow.addWidget(self.dateslabel)
+        self.datesrow.addWidget(self.preset_dates)
+        self.datesrow.addWidget(self.deselectbutton)
 
+    def initsitesrow(self):
+        self.sitesrow = QHBoxLayout()
+        self.radiogroup = QButtonGroup()
+
+        self.siteslabel = QLabel('Include:')
+        self.allsitesbutton = QRadioButton('All sites')
+        self.allsitesbutton.setChecked(True)
+        self.choosebutton = QRadioButton('Choose...')
+
+        self.radiogroup.addButton(self.allsitesbutton)
+        self.radiogroup.addButton(self.choosebutton)
+
+        self.sitesrow.addWidget(self.siteslabel)
+        self.sitesrow.addWidget(self.allsitesbutton)
+        self.sitesrow.addWidget(self.choosebutton)
+        self.sitesrow.addStretch()
+
+    def initCalendar(self):
+        currentMonth = datetime.now().month
+        currentYear = datetime.now().year
+        currentDay = datetime.now().day
+        calendar = QCalendarWidget(self)
+        formating = QtGui.QTextCharFormat()
+        formating.setForeground(QtGui.QBrush(QtGui.QColor('white'),QtCore.Qt.SolidPattern))
+        calendar.setWeekdayTextFormat(QtCore.Qt.Saturday, formating)
+        calendar.setWeekdayTextFormat(QtCore.Qt.Sunday, formating)
+        calendar.setMaximumDate(QtCore.QDate(currentYear, currentMonth, currentDay))
+        calendar.setSelectedDate(QtCore.QDate(currentYear, currentMonth, currentDay))
+
+        return calendar
+        
+    def fromdateSelected(self):
+        if not self.datefromclicked:
+            self.setCalendarEnabled(self.calendar_to)
+            self.datefromclicked = True
+            self.usingpresets = False  # change to false on first time
+        else:
+            if self.calendar_from.selectedDate() > self.calendar_to.selectedDate():
+                self.calendar_to.setSelectedDate(self.calendar_from.selectedDate())  # confused how this works
+                self.todateSelected()
+            self.calendar_to.setMinimumDate(self.calendar_from.selectedDate())
+        qDate = self.calendar_from.selectedDate()
+        self.currentmindate = self.calendar_from.selectedDate()
+        newtext = 'Date From: ' + '{0}/{1}/{2}'.format(qDate.day(),qDate.month(),qDate.year())
+        self.label_from.setText(newtext)
+    
+    def todateSelected(self):
+        if not self.datetoclicked:
+            self.datetoclicked = True
+        qDate = self.calendar_to.selectedDate()
+        newtext = 'Date To: ' + '{0}/{1}/{2}'.format(qDate.day(),qDate.month(),qDate.year())
+        self.label_to.setText(newtext)
+        self.currentmaxdate = self.calendar_to.selectedDate()
+
+    def setCalendarDisabled(self,calendar):
+        calendar.setDisabled(True)
+        formating = QtGui.QTextCharFormat()
+        formating.setForeground(QtGui.QBrush(QtGui.QColor('grey'),QtCore.Qt.SolidPattern))
+        calendar.setWeekdayTextFormat(QtCore.Qt.Saturday, formating)
+        calendar.setWeekdayTextFormat(QtCore.Qt.Sunday, formating)
+    
+    def setCalendarEnabled(self,calendar):
+        calendar.setDisabled(False)
+        formating = QtGui.QTextCharFormat()
+        formating.setForeground(QtGui.QBrush(QtGui.QColor('white'),QtCore.Qt.SolidPattern))
+        calendar.setWeekdayTextFormat(QtCore.Qt.Saturday, formating)
+        calendar.setWeekdayTextFormat(QtCore.Qt.Sunday, formating)
+        self.calendar_to.setMinimumDate(self.calendar_from.selectedDate())
+        self.calendar_to_Minim = self.calendar_from.selectedDate()
+
+    def presetdateselected(self):
+        if not self.usingpresets:
+            self.usingpresets = True
+            self.selectedpreset = self.preset_dates.currentText()
+            self.setCalendarDisabled(self.calendar_from)
+            self.setCalendarDisabled(self.calendar_to)
+        else:
+            self.selectedpreset = self.preset_dates.currentText()
+        self.currentmindate = self.timeSwitcher(self.selectedpreset)
+
+    def timeSwitcher(self,currenttext):  # fix quarter and can also do this a different way like did in calendar
+        switcher = {
+            'This Year': datetime.today().replace(day=1,month=1,hour=0, minute=0, second=0, microsecond=0),
+            'Past 7 Days':(datetime.today() - timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0),
+            'This Month': datetime.today().replace(day=1,hour=0, minute=0, second=0, microsecond=0),
+            'This Quarter': (datetime.today() - timedelta(days=92)).replace(hour=0, minute=0, second=0, microsecond=0)
+        }
+        return switcher.get(currenttext,'Error: unknown time frame')
+        
+    def deselectbuttonpressed(self):
+        if not self.usingpresets or not self.datefromclicked:  # if a time hasnt been selected
+            return
+        else:
+            self.usingpresets = False
+            self.setCalendarEnabled(self.calendar_from)
+            self.setCalendarEnabled(self.calendar_to)
+
+    def createButtonClicked(self):
+        self.rawlocations = fetchLocations("Localhost")  # just need to fetch specific locations here
+        self.justnames = [location[1] for location in self.rawlocations]
+        if self.choosebutton.isChecked():
+            self.Cwindow = ChooseDialog(self.justnames)
+            state = self.Cwindow.exec()
+            if state == 1:
+                returned = self.Cwindow.selectedlist
+                self.chosenlocationdata = [i for i in self.rawlocations if i[1] in returned]
+                callAnalysis(self.currentmindate.toPyDate(),self.chosenlocationdata,returned)
+            else:
+                return
+        else:  # else all sites must be selected
+            callAnalysis(self.currentmindate.toPyDate(),self.rawlocations,self.justnames)
+            #allAnalysis()
+      
 class importTab(QWidget):
     def __init__(self):
         super().__init__()
@@ -200,7 +343,7 @@ class importTab(QWidget):
         importbox.addLayout(HButtons)
         self.setLayout(importbox)
 
-class viewTab(QWidget):  # done now other than some improvements and potentially an 'Add' button
+class viewTab(QWidget):  # done now other than some improvements
     def __init__(self):
         super().__init__()
         #filters = ['Location','From past:'] if i decide to add more filters
@@ -313,7 +456,7 @@ class viewTab(QWidget):  # done now other than some improvements and potentially
     def rowclicked(self, row):
         try:
             self.currentRowSelected = self.currentTableData[row]
-        except:
+        except:  # this means dont leave it without specifying a specific error
             self.validRowSelected = False
         else:
             self.validRowSelected = True
@@ -354,6 +497,9 @@ class viewTab(QWidget):  # done now other than some improvements and potentially
         self.sitedata = [(str(site[1]),site[2],str(site[3]),str(site[4]),str(site[5])) for site in sitedata]
         #print(self.locations)
         #print(self.sitedata)
+    
+    def getlocations(self):  # return locations
+        return self.locations
 
     def timeSwitcher(self):
         currenttext = self.times.currentText()
@@ -441,4 +587,10 @@ app.exec()
 
 #make delete button with an are you sure thing
 
-#on the add dialog, put lables above the plastic peper glass ect 
+#on the add dialog, put lables above the plastic peper glass ect
+#currently only appends 30 items to the table
+
+#text shows up when someone presses choose saying they can choose when they click create
+#a quarter is 3 months, e.g jan,feb,march - april,may,june ect
+
+#add an 'All' Checkbox at a laterdate. right now it is not needed
