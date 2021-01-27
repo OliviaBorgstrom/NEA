@@ -1,8 +1,8 @@
 import psycopg2
 from datetime import datetime
 
-def deleteEntry(port,entryID):
-    con = psycopg2.connect(database="livi", user="livi", password="Pass1234",host=port)
+def deleteEntry(user,password,host,entryID):
+    con = psycopg2.connect(database="livi", user=user, password=password,host=host)
     #print("Database opened successfully")
     cur = con.cursor()
     parameters = '''
@@ -12,8 +12,8 @@ def deleteEntry(port,entryID):
     con.commit()
     con.close()
 
-def fetchLocations(port):  # for windows test inputting the port as host
-    con = psycopg2.connect(database="livi", user="livi", password="Pass1234",host=port)
+def fetchLocations(user,password,host):  # for windows test inputting the port as host
+    con = psycopg2.connect(database="livi", user=user, password=password,host=host)
     #print("Database opened successfully")
 
     cur = con.cursor()
@@ -25,8 +25,8 @@ def fetchLocations(port):  # for windows test inputting the port as host
     #return locations
     return rows
 
-def fetchspecificLocations(port,sitelist):  # for windows test inputting the port as host
-    con = psycopg2.connect(database="livi", user="livi", password="Pass1234",host=port)
+def fetchspecificLocations(user,password,host,sitelist):  # for windows test inputting the port as host
+    con = psycopg2.connect(database="livi", user=user, password=password,host=host)
     cur = con.cursor()
     parameters = '''SELECT * FROM locations
     WHERE name IN %s
@@ -36,8 +36,8 @@ def fetchspecificLocations(port,sitelist):  # for windows test inputting the por
     con.close()
     return rows
 
-def fetchbetweendates(port,datefrom,sitelist):
-    con = psycopg2.connect(database="livi", user="livi", password="Pass1234",host=port)
+def fetchbetweendates(user,password,host,datefrom,sitelist):
+    con = psycopg2.connect(database="livi", user=user, password=password,host=host)
     cur = con.cursor()
     
     parameters = '''SELECT date,name,avrpaper,avrplastic,avrglass FROM sitedata
@@ -51,8 +51,8 @@ def fetchbetweendates(port,datefrom,sitelist):
     con.close()
     return rows
 
-def fetchSitedata(port):  # still need windows option
-    con = psycopg2.connect(database="livi", user="livi", password="Pass1234",host=port)
+def fetchSitedata(user,password,host):  # still need windows option
+    con = psycopg2.connect(database="livi", user=user, password=password,host=host)
     #print("Database opened successfully")
     cur = con.cursor()
     cur.execute('''SELECT entryid,date,name,avrglass,avrpaper,avrplastic FROM sitedata
@@ -63,8 +63,8 @@ def fetchSitedata(port):  # still need windows option
     con.close()
     return rows
 
-def editExisting(port, inputdate, locationid, avrglass, avrpaper, avrplastic, entryID):
-    con = psycopg2.connect(database="livi", user="livi", password="Pass1234",host=port)
+def editExisting(user,password,host, inputdate, locationid, avrglass, avrpaper, avrplastic, entryID):
+    con = psycopg2.connect(database="livi", user=user, password=password,host=host)
     #print("Database opened successfully")
     cur = con.cursor()
     parameters = '''
@@ -76,8 +76,8 @@ def editExisting(port, inputdate, locationid, avrglass, avrpaper, avrplastic, en
     con.commit()
     con.close()
 
-def addTo(port,inputdate, locationid, avrglass, avrpaper, avrplastic):
-    con = psycopg2.connect(database="livi", user="livi", password="Pass1234",host=port)
+def addTo(user,password,host,inputdate, locationid, avrglass, avrpaper, avrplastic):
+    con = psycopg2.connect(database="livi", user=user, password=password,host=host)
     #print("Database opened successfully")
     cur = con.cursor()
     parameters = '''

@@ -8,7 +8,7 @@ from datetime import datetime
 
 class EditDialog(QDialog):
 
-    def __init__(self, rowdata, locations, entryid, siteids):
+    def __init__(self, rowdata, locations, entryid, siteids,user,password,host):
         super(EditDialog, self).__init__()
         self.setWindowTitle("Editing an entry...")
         self.setFixedSize(600,100)
@@ -61,7 +61,7 @@ class EditDialog(QDialog):
         dateboxvalue = self.dateEdit.date()
         #print(dateboxvalue)
         self.date = dateboxvalue.toPyDate()
-        editExisting("Localhost",self.date,self.selectedlocation,self.glassEdit.value(), self.paperEdit.value(), self.plasticEdit.value(), self.entryid)
+        editExisting(user,password,host,self.date,self.selectedlocation,self.glassEdit.value(), self.paperEdit.value(), self.plasticEdit.value(), self.entryid)
         self.accept()
             
 #fix the resizing so that a person cant resize the editing window, but it still autoexpands to the right size

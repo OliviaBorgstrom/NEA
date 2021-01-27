@@ -193,11 +193,11 @@ class monthlyAnalysis(siteAnalysis):
         # for the whole month, graphs could be appropriate, however other graphs may work better
         pass
 
-def callAnalysis(datefrom,filteredlocations,sitestoinclude):  # sitestoinclude has to be a tuple, and in alphabetical order
+def callAnalysis(datefrom,filteredlocations,sitestoinclude,user,password,host):  # sitestoinclude has to be a tuple, and in alphabetical order
     sitestoinclude = tuple(sitestoinclude)
     print(filteredlocations)
     #locationdata = fetchspecificLocations("Localhost", sitestoinclude)  # can remove this and just give the relevent location data
-    sitedata = fetchbetweendates("Localhost",datefrom,sitestoinclude)  # filtering out locations where no data is found
+    sitedata = fetchbetweendates(user,password,host,datefrom,sitestoinclude)  # filtering out locations where no data is found
 
     available_sites = [site[1] for site in sitedata]  # site 1 is the name
     sitesincluded = list(OrderedDict.fromkeys(available_sites))  # dictionaries cant have any duplicates so useful here

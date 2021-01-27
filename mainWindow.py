@@ -307,7 +307,7 @@ class createTab(QWidget):
             self.setCalendarEnabled(self.calendar_to)
 
     def createButtonClicked(self):
-        self.rawlocations = fetchLocations("Localhost")  # just need to fetch specific locations here
+        self.rawlocations = fetchLocations(sysuser,syspassword,syshost)  # just need to fetch specific locations here
         self.justnames = [location[1] for location in self.rawlocations]
         if self.choosebutton.isChecked():
             self.Cwindow = ChooseDialog(self.justnames)
@@ -315,7 +315,7 @@ class createTab(QWidget):
             if state == 1:
                 returned = self.Cwindow.selectedlist
                 self.chosenlocationdata = [i for i in self.rawlocations if i[1] in returned]
-                callAnalysis(self.currentmindate.toPyDate(),self.chosenlocationdata,returned)
+                callAnalysis(self.currentmindate.toPyDate(),self.chosenlocationdata,returned,sysuser,syspassword,syshost)
             else:
                 return
         else:  # else all sites must be selected
@@ -351,8 +351,8 @@ class viewTab(QWidget):  # done now other than some improvements
         self.viewbox = QVBoxLayout()
         self.fstack = stack()  # a stack for currently applied filters
 
-        self.rawlocations = fetchLocations("Localhost")
-        self.rawsitedata = fetchSitedata("Localhost")  # might changefrom rawsitedata
+        self.rawlocations = fetchLocations(sysuser,syspassword,syshost)
+        self.rawsitedata = fetchSitedata(sysuser,syspassword,syshost)  # might changefrom rawsitedata
 
         self.formatFromDB(self.rawlocations,self.rawsitedata)
         self.currentTableData = self.sitedata
@@ -448,7 +448,7 @@ class viewTab(QWidget):  # done now other than some improvements
     def refresh(self,func):
         def wrapper():
             func()
-            self.rawsitedata = fetchSitedata("Localhost")
+            self.rawsitedata = fetchSitedata(sysuser,syspassword,syshost)
             self.formatFromDB(self.rawlocations,self.rawsitedata)
             self.applyFilters()
         return wrapper
@@ -469,18 +469,18 @@ class viewTab(QWidget):  # done now other than some improvements
         if not self.validRowSelected:
             return
         else:
-            self.Ewindow = EditDialog(self.currentRowSelected,self.locations, self.selectedEntryID, self.siteIDs)
+            self.Ewindow = EditDialog(self.currentRowSelected,self.locations, self.selectedEntryID, self.siteIDs,sysuser,syspassword,syshost)
             self.Ewindow.exec()
     
     def executeAdd(self):
-        self.Awindow = AddDialog(self.locations, self.siteIDs)
+        self.Awindow = AddDialog(self.locations, self.siteIDs,sysuser,syspassword,syshost)
         self.Awindow.exec()
     
     def executeDelete(self):
         if not self.validRowSelected:
             return
         else:
-            deleteEntry("Localhost",self.selectedEntryID)
+            deleteEntry(sysuser,syspassword,syshost,self.selectedEntryID)
     
     def appendToTable(self,data):
         self.dataTable.clearContents()
@@ -568,6 +568,15 @@ class helpTab(QWidget):
         self.setLayout(self.vbox)
 
 #QApplication.setStyle(QtGui.QStyleFactory.create('cleanlooks'))    #work on making the appearance 'cleaner'
+if platform.system() == 'Linux':    # for my cross system development
+    sysuser = "livi"
+    syspassword = "Pass1234"
+    syshost = "localhost"
+else:
+    sysuser = "desktop"
+    syspassword = "password"
+    syshost = "192.168.0.184"
+
 app = QApplication(sys.argv)
 mainWindow = TabWidget()
 #mainWindow.inserthelp()
