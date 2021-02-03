@@ -4,6 +4,7 @@ import pygal
 from collections import OrderedDict
 import math
 from functools import reduce
+from sorting_alg import quicksort
 
 class array_circ(object):
     def __init__(self,data,pointer):
@@ -57,7 +58,6 @@ class array_circ(object):
 class siteAnalysis(object):  # right now this only works with reports starting from today, i should support other times too
     def __init__(self,siteinfo,datefrom,entries,reporttype):  # latest, oldest ?
         self.entries = entries
-        #print(self.entries)
         self.reporttype = reporttype  # now unecessarry
         self.datefrom = datefrom
         self.dateto = datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -79,6 +79,7 @@ class siteAnalysis(object):  # right now this only works with reports starting f
         self.generategraphpng(entries,'dummypath')
         self.generatemeandata()
         self.findtotalmean()
+        self.generatemeangraph('dummypath')
 
         # maybe have an overall site usage - e.g calculate the mean usage over time
         # and mean usage total over the time period
@@ -86,6 +87,19 @@ class siteAnalysis(object):  # right now this only works with reports starting f
 
     def gettitle(self):
         return self.sitename
+    
+    def generatemeangraph(self ,path):
+        self.mean_chart = pygal.DateLine(x_label_rotation=25)
+        self.mean_chart.title = 'Mean site usage for ' + self.sitename
+        self.mean_chart.y_labels = list(i for i in range(0, 110,10))  # 10 is the step
+        self.mean_chart.x_labels = self.x_values
+        self.mean_chart.show_x_guides = True  # show grid lines for both axis
+        self.mean_chart.show_y_guides = True
+        self.mean_chart.__init__
+
+        quicksort(self.meandata_wdates,0,len(self.meandata_wdates) - 1)
+        self.mean_chart.add("Mean",self.meandata_wdates)
+        self.mean_chart.render_to_png((self.sitename).replace(' ','_') + 'mean.png')
 
     def generategraphpng(self,data,path):  # path to save
         self.usage_chart = pygal.DateLine(x_label_rotation=25)
@@ -96,14 +110,12 @@ class siteAnalysis(object):  # right now this only works with reports starting f
         self.usage_chart.show_y_guides = True
         self.usage_chart.__init__
 
-        #print(self.entries)
-
         Plastic = [(entry[0],entry[2]) for entry in self.entries]
-        Plastic = self.quicksort(Plastic)
+        quicksort(Plastic,0,len(Plastic)-1)
         Paper = [(entry[0],entry[3]) for entry in self.entries]
-        Paper = self.quicksort(Paper)
+        quicksort(Paper,0,len(Paper)-1)
         Glass = [(entry[0],entry[4]) for entry in self.entries]
-        Glass = self.quicksort(Glass)
+        quicksort(Glass,0,len(Glass)-1)
 
         self.usage_chart.add("Plastic",Plastic)
         self.usage_chart.add("Paper",Paper)
@@ -111,24 +123,7 @@ class siteAnalysis(object):  # right now this only works with reports starting f
 
         self.usage_chart.render_to_png((self.sitename).replace(' ','_') + '.png')
     
-    def quicksort(self,listtosort):  # this is temporary, i will choose a better algorithm
-        sortedlist = []
-        justdates = [entry[0] for entry in listtosort]
-        tempjustdates = [entry[0] for entry in listtosort]
-        #print(justdates)
-        i = len(tempjustdates)
-        while i > 0:
-            minim = min(tempjustdates)
-            sortedlist.append(listtosort[justdates.index(minim)])
-            tempjustdates.pop(tempjustdates.index(minim))
-            i = len(tempjustdates)
-        return sortedlist
-
     def months_since(self,target):  # can make this months between when needed
-        num_months = (self.dateto.year - target.year) * 12 + (self.dateto.month - target.month)
-        return num_months
-    
-    def days_since(self,target):
         num_months = (self.dateto.year - target.year) * 12 + (self.dateto.month - target.month)
         return num_months
 
@@ -168,13 +163,12 @@ class siteAnalysis(object):  # right now this only works with reports starting f
     def generatemeandata(self):
         sum_each = [reduce((lambda x,y: x + y),[self.entries[i][2],self.entries[i][3],self.entries[i][4]]) for i in range(len(self.entries))]
         self.meandata = list(map((lambda x: x // 3),sum_each))
-        #print(self.meandata)
+        self.meandata_wdates = [[self.entries[i][0],self.meandata[i]] for i in range(len(self.meandata))]
 
     def findtotalmean(self):
         n = len(self.meandata)
         sum_one = reduce((lambda x,y: x + y),self.meandata)
         self.totalmean = sum_one // n
-        #print(self.totalmean)
 
 class weeklyAnalysis(siteAnalysis):   # the style of the longer site analysis does not work so well with less values
     def __init__(self):
@@ -195,7 +189,7 @@ class monthlyAnalysis(siteAnalysis):
 
 def callAnalysis(datefrom,filteredlocations,sitestoinclude,user,password,host):  # sitestoinclude has to be a tuple, and in alphabetical order
     sitestoinclude = tuple(sitestoinclude)
-    print(filteredlocations)
+    print(sitestoinclude)
     #locationdata = fetchspecificLocations("Localhost", sitestoinclude)  # can remove this and just give the relevent location data
     sitedata = fetchbetweendates(user,password,host,datefrom,sitestoinclude)  # filtering out locations where no data is found
 

@@ -8,6 +8,7 @@ from QDialog_Edit import EditDialog
 from QDialog_Add import AddDialog
 from QDialog_Siteschoose import ChooseDialog
 from Create_Report import callAnalysis
+from Reportclass_structure import Report
 import sys
 import os
 import platform
@@ -217,6 +218,10 @@ class createTab(QWidget):
         self.allsitesbutton = QRadioButton('All sites')
         self.allsitesbutton.setChecked(True)
         self.choosebutton = QRadioButton('Choose...')
+        
+        if len(os.listdir('Past_Reports')) != 0:   
+            self.comparebutton = QPushButton('Compare with...')
+            self.comparebutton.clicked.connect(opencompare)
 
         self.radiogroup.addButton(self.allsitesbutton)
         self.radiogroup.addButton(self.choosebutton)
@@ -306,6 +311,8 @@ class createTab(QWidget):
             self.setCalendarEnabled(self.calendar_from)
             self.setCalendarEnabled(self.calendar_to)
 
+    def compareButtonClicked(self):
+        self.CompareWindow =
     def createButtonClicked(self):
         self.rawlocations = fetchLocations(sysuser,syspassword,syshost)  # just need to fetch specific locations here
         self.justnames = [location[1] for location in self.rawlocations]
@@ -315,7 +322,9 @@ class createTab(QWidget):
             if state == 1:
                 returned = self.Cwindow.selectedlist
                 self.chosenlocationdata = [i for i in self.rawlocations if i[1] in returned]
-                callAnalysis(self.currentmindate.toPyDate(),self.chosenlocationdata,returned,sysuser,syspassword,syshost)
+                thingy = Report(self.currentmaxdate.toPyDate(),self.currentmindate.toPyDate(),self.chosenlocationdata,returned,syshost)
+                print(thingy)
+                #callAnalysis(self.currentmindate.toPyDate(),self.chosenlocationdata,returned,sysuser,syspassword,syshost)
             else:
                 return
         else:  # else all sites must be selected

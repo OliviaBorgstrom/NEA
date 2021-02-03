@@ -39,7 +39,7 @@ def fetchspecificLocations(user,password,host,sitelist):  # for windows test inp
 def fetchbetweendates(user,password,host,datefrom,sitelist):
     con = psycopg2.connect(database="livi", user=user, password=password,host=host)
     cur = con.cursor()
-    
+    print('Database opened')
     parameters = '''SELECT date,name,avrpaper,avrplastic,avrglass FROM sitedata
     INNER JOIN locations
     ON locationid = siteid

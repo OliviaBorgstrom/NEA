@@ -6,14 +6,12 @@ from Database import fetchLocations,fetchSitedata,editExisting
 import sys
 from datetime import datetime
 
-class ChooseDialog(QDialog):
+class CompareDialog(QDialog):
 
-    def __init__(self,all_locations):
-        super(ChooseDialog, self).__init__()
-        self.setWindowTitle("Select which sites to include...")
+    def __init__(self):
+        super(CompareDialog, self).__init__()
+        self.setWindowTitle("Select a Past Report to Compare With...")
         self.setFixedSize(600,600)
-        self.all_locations = all_locations
-        self.selectedlist = []
         self.initmainblock()
         
         buttons = QDialogButtonBox.Save | QDialogButtonBox.Cancel  # change this so that it doesnt trigger when pressing enter
@@ -30,11 +28,12 @@ class ChooseDialog(QDialog):
         self.blocklayout = QVBoxLayout()
         self.scrollarea = QScrollArea()
         containerwidget = QWidget()
-        self.checkboxlayout = QVBoxLayout()
-        self.checkboxgroup = QButtonGroup()
-        self.checkboxgroup.setExclusive(False)
+        self.radiobuttonlayout = QVBoxLayout()
+        self.radiobuttongroup = QButtonGroup()
 
-        for i in range(len(self.all_locations)):
+        PastReports = os.listdir('Past_Reports')
+
+        for i in range(len(PastReports)):
             tempbox = QCheckBox(self.all_locations[i])
             self.checkboxlayout.addWidget(tempbox)
             self.checkboxgroup.addButton(tempbox)
@@ -47,6 +46,30 @@ class ChooseDialog(QDialog):
 
         self.blocklayout.addWidget(self.scrollarea)
         self.blocklayout.addWidget(self.listsites)
+
+    def boxchecked(self):  # 0 is unchecked 2 is checked state
+        obj = self.sender()
+        name = obj.text()
+        text = self.listsites.text()
+        if obj.checkState() == 2:
+            self.selectedlist.append(name)
+            if self.numsincelastbreak == 2:
+                name = name + '\n'
+                self.numsincelastbreak = 0
+            else:
+                self.numsincelastbreak += 1
+            if len(text) > 16:
+                newtext = text + ', ' + name
+            else:
+                newtext = text + name
+            self.listsites.setText(newtext)
+        else:
+            self.selectedlist.pop(self.selectedlist.index(name))
+            for i in range(2,len(self.selectedlist),2):
+                self.selectedlist[i] = self.selectedlist[i] + '\n'
+            newtext = 'Selected Sites: ' + ((str(self.selectedlist).replace('[','')).replace(']','')).replace('\'','')
+            self.listsites.setText(newtext)
+        print(self.selectedlist)
 
     def boxchecked2(self):  # 0 is unchecked 2 is checked state
         obj = self.sender()

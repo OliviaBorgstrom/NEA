@@ -8,11 +8,14 @@ from datetime import datetime
 
 class EditDialog(QDialog):
 
-    def __init__(self, rowdata, locations, entryid, siteids,user,password,host):
+    def __init__(self, rowdata, locations, entryid, siteids,user,password,host):  # consider making passwork private
         super(EditDialog, self).__init__()
         self.setWindowTitle("Editing an entry...")
         self.setFixedSize(600,100)
         self.rowdata = rowdata
+        self.user = user
+        self.password = password
+        self.host = host 
         if locations[0] == 'All':
             locations.pop(0)
         self.locations = locations
@@ -61,7 +64,7 @@ class EditDialog(QDialog):
         dateboxvalue = self.dateEdit.date()
         #print(dateboxvalue)
         self.date = dateboxvalue.toPyDate()
-        editExisting(user,password,host,self.date,self.selectedlocation,self.glassEdit.value(), self.paperEdit.value(), self.plasticEdit.value(), self.entryid)
+        editExisting(self.user,self.password, self.host,self.date,self.selectedlocation,self.glassEdit.value(), self.paperEdit.value(), self.plasticEdit.value(), self.entryid)
         self.accept()
             
 #fix the resizing so that a person cant resize the editing window, but it still autoexpands to the right size

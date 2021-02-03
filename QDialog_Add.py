@@ -10,6 +10,9 @@ class AddDialog(QDialog):
 
     def __init__(self, locations,siteids,user,password,host):
         super(AddDialog, self).__init__()
+        self.user = user
+        self.password = password
+        self.host = host
         self.setWindowTitle("Adding a new entry...")
         self.setFixedSize(600,100)
         if locations[0] == 'All':
@@ -56,7 +59,7 @@ class AddDialog(QDialog):
         self.selectedlocation = self.siteids[self.siteDropDown.currentIndex()]  # we didnt need to get the siteids could have just used index + 1 i think
         dateboxvalue = self.dateEdit.date()
         self.date = dateboxvalue.toPyDate()
-        addTo(user,password,host,self.date,self.selectedlocation,self.glassEdit.value(), self.paperEdit.value(), self.plasticEdit.value())
+        addTo(self.user,self.password,self.host,self.date,self.selectedlocation,self.glassEdit.value(), self.paperEdit.value(), self.plasticEdit.value())
         self.accept()
             
 #fix the resizing so that a person cant resize the editing window, but it still autoexpands to the right size
