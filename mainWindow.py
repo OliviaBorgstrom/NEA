@@ -7,6 +7,7 @@ from datetime import datetime,timedelta
 from QDialog_Edit import EditDialog
 from QDialog_Add import AddDialog
 from QDialog_Siteschoose import ChooseDialog
+from QDialog_Compare import CompareDialog
 from Create_Report import callAnalysis
 from Reportclass_structure import Report
 import sys
@@ -221,7 +222,7 @@ class createTab(QWidget):
         
         if len(os.listdir('Past_Reports')) != 0:   
             self.comparebutton = QPushButton('Compare with...')
-            self.comparebutton.clicked.connect(opencompare)
+            self.comparebutton.clicked.connect(self.compareButtonClicked())
 
         self.radiogroup.addButton(self.allsitesbutton)
         self.radiogroup.addButton(self.choosebutton)
@@ -312,7 +313,14 @@ class createTab(QWidget):
             self.setCalendarEnabled(self.calendar_to)
 
     def compareButtonClicked(self):
-        self.CompareWindow =
+        self.CompareWindow = CompareDialog()
+        state = self.CompareWindow.exec()
+        if state == 1:
+                returned = self.Cwindow.radiobuttongroup.checkedButton().text()
+                print(returned)
+        else:
+            return
+
     def createButtonClicked(self):
         self.rawlocations = fetchLocations(sysuser,syspassword,syshost)  # just need to fetch specific locations here
         self.justnames = [location[1] for location in self.rawlocations]
