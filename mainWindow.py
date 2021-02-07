@@ -51,7 +51,7 @@ class TabWidget(QWidget):
         super().__init__()
         self.setWindowTitle("NEL Wastebase")
         self.setWindowIcon(QIcon("gearicon.jpg"))
-        self.setGeometry(300,150,700,500)  # x,y,width,height
+        self.setFixedSize(700,500)  # x,y,width,height
         self.tabmenu = QTabWidget()
         #tabmenu.setTabsClosable(True)
         tabs = [[homeTab(self),"home"],[createTab(),'create'],[importTab(),'import'],[viewTab(),'view']]
@@ -145,6 +145,8 @@ class createTab(QWidget):
         self.datefromclicked = False  # notes if they have ever been pressed 
         self.datetoclicked = False
         self.usingpresets = True  # assume they are using presets by default
+        self.comparingreport = False  # assume they aren't comparing by default
+        self.selectedReport_index = None
         self.selectedpreset = 'Week'
         self.toplayer = QVBoxLayout()
         self.grid_alignleft = QGridLayout()
@@ -219,10 +221,6 @@ class createTab(QWidget):
         self.allsitesbutton = QRadioButton('All sites')
         self.allsitesbutton.setChecked(True)
         self.choosebutton = QRadioButton('Choose...')
-        
-        if len(os.listdir('Past_Reports')) != 0:   
-            self.comparebutton = QPushButton('Compare with...')
-            self.comparebutton.clicked.connect(self.compareButtonClicked())
 
         self.radiogroup.addButton(self.allsitesbutton)
         self.radiogroup.addButton(self.choosebutton)
@@ -230,6 +228,12 @@ class createTab(QWidget):
         self.sitesrow.addWidget(self.siteslabel)
         self.sitesrow.addWidget(self.allsitesbutton)
         self.sitesrow.addWidget(self.choosebutton)
+
+        if len(os.listdir('Past_Reports')) != 0:   
+            self.comparebutton = QPushButton('Compare with...')
+            self.comparebutton.clicked.connect(self.compareButtonClicked)
+            self.sitesrow.addWidget(self.comparebutton)
+
         self.sitesrow.addStretch()
 
     def initCalendar(self):
@@ -313,16 +317,26 @@ class createTab(QWidget):
             self.setCalendarEnabled(self.calendar_to)
 
     def compareButtonClicked(self):
-        self.CompareWindow = CompareDialog()
+        self.CompareWindow = CompareDialog(self.comparingreport,self.selectedReport_index)
         state = self.CompareWindow.exec()
         if state == 1:
-                returned = self.Cwindow.radiobuttongroup.checkedButton().text()
+            try:
+                returned = self.CompareWindow.radiobuttongroup.checkedButton().text()
+                self.comparingreport = True
+                self.selectedReport_index = self.CompareWindow.radiobuttongroup.checkedId()
+                self.selectedReport_text = returned
                 print(returned)
+            except Exception as e:
+                print(e)
+                self.comparingreport = False
+                print("None selected")
+                return 
         else:
             return
 
     def createButtonClicked(self):
         self.rawlocations = fetchLocations(sysuser,syspassword,syshost)  # just need to fetch specific locations here
+        print('fetchingfromcreate')
         self.justnames = [location[1] for location in self.rawlocations]
         if self.choosebutton.isChecked():
             self.Cwindow = ChooseDialog(self.justnames)
@@ -332,11 +346,13 @@ class createTab(QWidget):
                 self.chosenlocationdata = [i for i in self.rawlocations if i[1] in returned]
                 thingy = Report(self.currentmaxdate.toPyDate(),self.currentmindate.toPyDate(),self.chosenlocationdata,returned,syshost)
                 print(thingy)
+                self.comparingreport = False
                 #callAnalysis(self.currentmindate.toPyDate(),self.chosenlocationdata,returned,sysuser,syspassword,syshost)
             else:
                 return
         else:  # else all sites must be selected
             callAnalysis(self.currentmindate.toPyDate(),self.rawlocations,self.justnames)
+            self.comparingreport = False
             #allAnalysis()
       
 class importTab(QWidget):

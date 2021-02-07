@@ -25,14 +25,16 @@ class Report(object):
 
         self.y_values = list(i for i in range(0, 110,10))
         self.num_months = (self.dateto.year - self.datefrom.year) * 12 + (self.dateto.month - self.datefrom.month)
-        self.generatex_values()
         if self.num_months == 0:
             self.num_days = self.dateto.day - self.datefrom.day
             if self.num_days <= 7:
+                self.generatex_values_weekly()
                 self.initAnalysisObj(weeklyAnalysis)
             else:
+                self.generatex_values_monthly()
                 self.initAnalysisObj(monthlyAnalysis)
         else:
+            self.generatex_values()
             self.initAnalysisObj(Analysis)
         
         self.generateOverallSummary()
@@ -194,11 +196,17 @@ class Analysis(object):  # those which arent specifically monthly or weekly are 
         self.avr_glass_usage = countglass // n 
 
 class weeklyAnalysis(Analysis):
-    def __init__(self):
+    def __init__(self, title, x_values, y_values, siteInfo, entries):
+        super(weeklyAnalysis, self).__init__(title, x_values, y_values, siteInfo, entries)
+    
+    def initAllGraphs(self):
         pass
 
 class monthlyAnalysis(Analysis):
-    def __init__(self):
+    def __init__(self, title, x_values, y_values, siteInfo, entries):
+        super(monthlyAnalysis, self).__init__(title, x_values, y_values, siteInfo, entries)
+    
+    def initAllGraphs(self):
         pass
 
 class array_circ(object):
