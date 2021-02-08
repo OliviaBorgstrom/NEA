@@ -4,10 +4,12 @@ from datetime import datetime, date, timedelta
 import pygal
 from collections import OrderedDict
 import math
+import numpy as np
 from functools import reduce
 from jinja2 import Environment, FileSystemLoader
 from weasyprint import HTML
 from pygal.style import Style,CleanStyle
+import os
 
 class Report(object):
     def __init__(self,dateto,datefrom,filteredlocations,sitestoinclude,host):
@@ -18,6 +20,8 @@ class Report(object):
         self.sitestoinclude = sitestoinclude
         self.filteredlocations = filteredlocations
         self.host = host
+        self.anydata = True  # assume there is data by default 
+        self.generatereportpath()
 
         self.title = 'An Analysis of Bring To Site Usage Between ' + str(datefrom) + ' and ' + str(dateto)
         self.template_vars = {}
@@ -28,31 +32,46 @@ class Report(object):
         if self.num_months == 0:
             self.num_days = self.dateto.day - self.datefrom.day
             if self.num_days <= 7:
-                self.generatex_values_weekly()
+                #self.generatex_values_weekly()
+                self.x_values = 'not needed'
                 self.initAnalysisObj(weeklyAnalysis)
+                self.getAnalysisTemplate_vars()
+                self.renderhtml("html_templates/weeklyReport.html")
             else:
                 self.generatex_values_monthly()
                 self.initAnalysisObj(monthlyAnalysis)
         else:
             self.generatex_values()
             self.initAnalysisObj(Analysis)
-        
-        self.generateOverallSummary()
-        self.renderhtml('dummypath')
+            self.getAnalysisTemplate_vars()
+            self.generateOverallSummary()
+            self.renderhtml("html_templates/mainReport.html")
 
     def initAnalysisObj(self, AnalysisClass):  # can add a thing at the bottom saying -> no data found for ...
         self.sitestoinclude = tuple(self.sitestoinclude)
         sitedata = fetchbetweendates('desktop','password',self.host,self.datefrom,self.sitestoinclude)  # filtering out locations where no data is found
         available_sites = [site[1] for site in sitedata]  # site 1 is the name
         sitesincluded = list(OrderedDict.fromkeys(available_sites))  # dictionaries cant have any duplicates so useful here
-
-        sitedata_split = self.sublists(sitesincluded,sitedata,available_sites) 
-
-        for i in range(len(sitesincluded)):
-            self.dataObjects.append(AnalysisClass('Analysis',self.x_values,self.y_values,self.filteredlocations[i],sitedata_split[i]))
+        if len(sitesincluded) == 0: 
+            self.anydata = False
+        else:   
+            sitedata_split = self.sublists(sitesincluded,sitedata,available_sites)
+            for i in range(len(sitesincluded)):
+                self.dataObjects.append(AnalysisClass(self.x_values, self.y_values, self.filteredlocations[i],sitedata_split[i]))
         
-        sitevars = [[each.totalMean,each.numPaper,each.numPlastic,each.numGlass,each.avr_paper_usage,each.avr_plastic_usage,each.avr_glass_usage] for each in self.dataObjects]
-        sites = [[self.dataObjects[i].sitename,self.dataObjects[i].usage_pngtitle,self.dataObjects[i].mean_pngtitle,sitevars[i]] for i in range(len(self.dataObjects))]
+
+    def getAnalysisTemplate_vars(self):
+        #sitevars = [[each.totalMean,each.numPaper,each.numPlastic,each.numGlass,each.avr_paper_usage,each.avr_plastic_usage,each.avr_glass_usage] for each in self.dataObjects]
+        #sites = [[self.dataObjects[i].sitename,self.dataObjects[i].usage_pngtitle,self.dataObjects[i].mean_pngtitle,sitevars[i]] for i in range(len(self.dataObjects))]
+        sites = [each.getSiteProfile() for each in self.dataObjects]
+        print(sites,'sites')
+        
+        totalMeans = [each.totalMean for each in self.dataObjects]
+        maxID = np.argmax(totalMeans)
+        minID = np.argmin(totalMeans)
+        self.template_vars['mostUsed'] = [sites[maxID][0], totalMeans[maxID]]
+        self.template_vars['leastUsed'] = [sites[minID][0], totalMeans[minID]]
+
         self.template_vars['sites'] = sites
         
     def sublists(self,lookfor,lst,namesonly):  # sitedata has been alphabetically ordered by name
@@ -109,22 +128,30 @@ class Report(object):
         line_chart.show_x_guides = True
         line_chart.show_y_guides = True
         line_chart.__init__
-        line_chart.render_to_png('Overallbarchart.png')
-        self.template_vars['barchart'] = 'Overallbarchart.png'
+        line_chart.render_to_png('temp/Overallbarchart.png')
+        self.template_vars['barchart'] = 'temp/Overallbarchart.png'
         
     def generatereportpath(self):
-        pass
+        self.reportPath = 'Past_Reports/'+ str(self.datefrom) + '_to_' + str(self.dateto) + '.pdf' #add a number depending on if there is another or not
+        print(self.reportPath)
     
     def renderhtml(self,templatepath):
-        env = Environment(loader=FileSystemLoader('.'))
-        self.template = env.get_template("html_templates/mainReport.html")
-        print(self.template_vars)
-        html_out = self.template.render(self.template_vars)
-        HTML(string=html_out,base_url=__file__).write_pdf("report.pdf",stylesheets=["html_templates/style.css"])
+        if not self.anydata:
+            print('no data found')
+        else:
+            env = Environment(loader=FileSystemLoader('.'))
+            self.template = env.get_template(templatepath)
+            html_out = self.template.render(self.template_vars)
+            HTML(string=html_out,base_url=__file__).write_pdf(self.reportPath,stylesheets=["html_templates/style.css"])
+            self.clearTemp()
+        
+    def clearTemp(self):
+        for filename in os.listdir('temp'):
+            filepath = 'temp/' + filename
+            os.remove(filepath)
 
 class Analysis(object):  # those which arent specifically monthly or weekly are just Analysis
-    def __init__(self, title, x_values, y_values, siteInfo, entries):
-        self.title = 'title'
+    def __init__(self, x_values, y_values, siteInfo, entries):
         self.x_values = x_values
         self.y_values = y_values
         self.sitename = siteInfo[1]
@@ -142,7 +169,7 @@ class Analysis(object):  # those which arent specifically monthly or weekly are 
         self.generateMeanData()
         self.mean_chart = pygal.DateLine(x_label_rotation=25,style=self.custom_style)
         self.mean_chart.title = 'Mean site usage for ' + self.sitename
-        self.mean_pngtitle = (self.sitename).replace(' ','_') + 'mean.png'
+        self.mean_pngtitle = 'temp/' +(self.sitename).replace(' ','_') + 'mean.png'
         self.generateAsPNG(self.mean_chart,[["Mean",self.mean_data]],self.mean_pngtitle)
 
         plastic = []
@@ -158,31 +185,24 @@ class Analysis(object):  # those which arent specifically monthly or weekly are 
 
         self.usage_chart = pygal.DateLine(x_label_rotation=25,style=self.custom_style)
         self.usage_chart.title = 'Usage over time for ' + self.sitename
-        self.usage_pngtitle = (self.sitename).replace(' ','_') + '.png'
+        self.usage_pngtitle = 'temp/' +(self.sitename).replace(' ','_') + '.png'
         self.generateAsPNG(self.usage_chart,[["Plastic",plastic],["Paper",paper],["Glass",glass]],self.usage_pngtitle)
     
-    def generateAsPNG(self,graphobj,data_arr,filename):
+    def graphConfigure(self,graphobj):
         graphobj.y_labels = self.y_values
         graphobj.x_labels = self.x_values
         graphobj.show_x_guides = True
         graphobj.show_y_guides = True
         graphobj.__init__
 
+    def generateAsPNG(self,graphobj,data_arr,filename):
+        self.graphConfigure(graphobj)
         for i in range(len(data_arr)):
             graphobj.add(data_arr[i][0],data_arr[i][1])
-        
         graphobj.render_to_png(filename)
-    
-    def generateMeanData(self):
-        sum_each = [reduce((lambda x,y: x + y),[self.entries[i][2],self.entries[i][3],self.entries[i][4]]) for i in range(len(self.entries))]
-        meanNums = list(map((lambda x: x // 3),sum_each))
-        self.mean_data = [[self.entries[i][0],meanNums[i]] for i in range(len(meanNums))]
-        quicksort(self.mean_data,0,len(self.mean_data)-1)
 
-        n = len(meanNums)
-        sum_one = reduce((lambda x,y: x + y),meanNums)
-        self.totalMean = sum_one // n
-
+    def mean(self):
+        n = len(self.entries)
         countplastic = 0
         countpaper = 0
         countglass = 0
@@ -195,17 +215,54 @@ class Analysis(object):  # those which arent specifically monthly or weekly are 
         self.avr_paper_usage = countpaper // n
         self.avr_glass_usage = countglass // n 
 
-class weeklyAnalysis(Analysis):
-    def __init__(self, title, x_values, y_values, siteInfo, entries):
-        super(weeklyAnalysis, self).__init__(title, x_values, y_values, siteInfo, entries)
+    def generateTotalMean(self):
+        self.sum_each = [reduce((lambda x,y: x + y),[self.entries[i][2],self.entries[i][3],self.entries[i][4]]) for i in range(len(self.entries))]
+        self.meanNums = list(map((lambda x: x // 3),self.sum_each))
+        n = len(self.meanNums)
+        sum_one = reduce((lambda x,y: x + y),self.meanNums)
+        self.totalMean = sum_one // n
+
+    def generateMeanData(self):
+        self.generateTotalMean()
+        self.mean_data = [[self.entries[i][0],self.meanNums[i]] for i in range(len(self.meanNums))]
+        quicksort(self.mean_data,0,len(self.mean_data)-1)
+        self.mean()
     
+    def getSiteProfile(self):
+        sitevars = [self.totalMean,self.numPaper,self.numPlastic,self.numGlass,self.avr_paper_usage,self.avr_plastic_usage,self.avr_glass_usage]
+        return [self.sitename,self.usage_pngtitle,self.mean_pngtitle,sitevars]
+
+class weeklyAnalysis(Analysis):  # maybe add what percent it is at on the top of each bar chart
+    def __init__(self, x_values, y_values, siteInfo, entries):
+        self.graph_path = 'temp/' + (entries[0][1]).replace(' ','_') + '.png'
+        super(weeklyAnalysis, self).__init__(x_values, y_values, siteInfo, entries)
+        self.generateTotalMean()
+
     def initAllGraphs(self):
-        pass
+        self.x_values = [self.sitename]  # x value is different each time
+        self.mean()
+        if len(self.entries) > 1:
+            self.entries = [[self.entries[0][0], self.entries[0][1], self.avr_plastic_usage, self.avr_paper_usage, self.avr_glass_usage]]
+        
+        self.main_chart = pygal.Bar()
+        self.graphConfigure(self.main_chart)
+        self.main_chart.add('Plastic', self.entries[0][2])
+        self.main_chart.add('Paper', self.entries[0][3])
+        self.main_chart.add('Glass', self.entries[0][4]) 
+        self.main_chart.render_to_png(self.graph_path)
+    
+    #def initOtherValues(self):
+        #self.generateTotalMean()
+
+    def getSiteProfile(self):
+        sitevars = [self.totalMean,self.numPaper,self.numPlastic,self.numGlass,self.avr_paper_usage,self.avr_plastic_usage,self.avr_glass_usage]
+        return [self.sitename,self.graph_path,sitevars]
+
 
 class monthlyAnalysis(Analysis):
     def __init__(self, title, x_values, y_values, siteInfo, entries):
         super(monthlyAnalysis, self).__init__(title, x_values, y_values, siteInfo, entries)
-    
+
     def initAllGraphs(self):
         pass
 
@@ -256,3 +313,4 @@ class array_circ(object):
     def get_to_asint(self):
         return self.currentsliceindexes
     
+## maybe use a different method for the mean or just use the decimal?
