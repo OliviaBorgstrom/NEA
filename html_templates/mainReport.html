@@ -8,12 +8,12 @@
 <div class="container">
     <div class="center">
         <h2><b><u>{{ title }}</u></b></h2><br>
-        <h2><b>An Overall Summary</b></h2>
+        <h2><b><u>An Overall Summary</u></b></h2>
     </div>
     <div class="summary_box" style="width:450px">
-        Most used site: {{ most used }}
-        Least used site: {{ least used }}
-        Mean usage of all sites: {{ total mean }}
+        <b>Most used site: {{ mostUsed.0 }} ({{ mostUsed.1 }}%)</b><br>
+        <b>Least used site: {{ leastUsed.0 }} ({{ leastUsed.1}}%)</b>
+    
         <!-- include comparison to previous report if exists -->
     </div>
     <img src= '{{ barchart }}' style="width:500px">
