@@ -148,6 +148,8 @@ class createTab(QWidget):
         self.comparingreport = False  # assume they aren't comparing by default
         self.selectedReport_index = None
         self.selectedpreset = 'Week'
+        self.currentmindate = QtCore.QDate.currentDate().addDays(-7)
+        self.currentmaxdate = QtCore.QDate.currentDate()
         self.toplayer = QVBoxLayout()
         self.grid_alignleft = QGridLayout()
         self.calendars_group = QGroupBox('Use Data between two dates:')
@@ -336,24 +338,34 @@ class createTab(QWidget):
 
     def createButtonClicked(self):
         self.rawlocations = fetchLocations(sysuser,syspassword,syshost)  # just need to fetch specific locations here
-        print('fetchingfromcreate')
         self.justnames = [location[1] for location in self.rawlocations]
+        comparetoggle = [self.comparingreport]
+        if self.comparingreport:
+            comparetoggle.append(self.selectedReport_text)      
+
         if self.choosebutton.isChecked():
             self.Cwindow = ChooseDialog(self.justnames)
             state = self.Cwindow.exec()
+            
             if state == 1:
                 returned = self.Cwindow.selectedlist
                 self.chosenlocationdata = [i for i in self.rawlocations if i[1] in returned]
-                thingy = Report(self.currentmaxdate.toPyDate(),self.currentmindate.toPyDate(),self.chosenlocationdata,returned,syshost)
+                thingy = Report(comparetoggle,self.currentmaxdate.toPyDate(),self.currentmindate.toPyDate(),self.chosenlocationdata,returned,syshost)
                 print(thingy)
                 self.comparingreport = False
                 #callAnalysis(self.currentmindate.toPyDate(),self.chosenlocationdata,returned,sysuser,syspassword,syshost)
+          
             else:
                 return
-        else:  # else all sites must be selected
-            callAnalysis(self.currentmindate.toPyDate(),self.rawlocations,self.justnames)
+
+        elif self.allsitesbutton.isChecked():  # else all sites must be selected
+            thingy = Report(comparetoggle,self.currentmaxdate.toPyDate(),self.currentmindate.toPyDate(),self.rawlocations,self.justnames,syshost)
+            print(thingy)
             self.comparingreport = False
             #allAnalysis()
+        
+        else: 
+            return
       
 class importTab(QWidget):
     def __init__(self):
