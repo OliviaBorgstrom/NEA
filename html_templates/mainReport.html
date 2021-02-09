@@ -1,3 +1,4 @@
+<!--{{ ListOfSites }}-->
 <!DOCTYPE html>
 <html>
 <head lang="en">
@@ -14,12 +15,13 @@
         <b>Most used site: {{ mostUsed.0 }} ({{ mostUsed.1 }}%)</b><br>
         <b>Least used site: {{ leastUsed.0 }} ({{ leastUsed.1}}%)</b>
     
-        <!-- include comparison to previous report if exists -->
     </div>
     <img src= '{{ barchart }}' style="width:500px">
 </div>
-<div class="container">
+<div class="container"> 
+    <!--_StartReading_-->
     {% for site in sites %}
+        <!--{{ site.0 }}-->
         <p style="page-break-before: always" ></p>
         <div class="center">
             <h2><b><u>Analysis for  - {{site.0}}</u></b></h2>
@@ -33,9 +35,9 @@
         </div>
         <img src= '{{site.1}}' style="width:500px">
         <img src= '{{site.2}}' style="width:500px">
-
-        <!-- include "summary.html" ,need { and % around it-->
+        <!--END-->
     {% endfor %}
+    <!--_StopReading_-->
 </div>
 </body>
 </html>
