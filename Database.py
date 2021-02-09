@@ -36,7 +36,7 @@ def fetchspecificLocations(user,password,host,sitelist):  # for windows test inp
     con.close()
     return rows
 
-def fetchbetweendates(user,password,host,datefrom,sitelist):
+def fetchbetweendates(user,password,host,datefrom,dateto,sitelist):
     con = psycopg2.connect(database="livi", user=user, password=password,host=host)
     cur = con.cursor()
     print('Database opened')
@@ -46,7 +46,7 @@ def fetchbetweendates(user,password,host,datefrom,sitelist):
     WHERE date BETWEEN %s AND %s
     AND name IN %s
     ORDER BY name ASC;'''
-    cur.execute(parameters,(datefrom,datetime.today(),sitelist))
+    cur.execute(parameters,(datefrom,dateto,sitelist))
     rows = cur.fetchall()
     con.close()
     return rows
