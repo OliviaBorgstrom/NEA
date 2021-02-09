@@ -12,11 +12,19 @@ from pygal.style import Style,CleanStyle
 import os
 
 class Report(object):
-    def __init__(self,dateto,datefrom,filteredlocations,sitestoinclude,host):
+    def __init__(self,iscomparing,dateto,datefrom,filteredlocations,sitestoinclude,host):
+        self.iscomparing = iscomparing[0]
+        print(self.iscomparing)
+        if iscomparing[0]:
+            self.comparepath = iscomparing[1]
+            print(comparepath)
+
         self.dataObjects = []
         self.templatepath = 'path'
         self.datefrom = datefrom
+        print(self.datefrom,'datefrom')
         self.dateto = dateto
+        print(self.dateto,'dateto')
         self.sitestoinclude = sitestoinclude
         self.filteredlocations = filteredlocations
         self.host = host
@@ -38,8 +46,12 @@ class Report(object):
                 self.getAnalysisTemplate_vars()
                 self.renderhtml("html_templates/weeklyReport.html")
             else:
-                self.generatex_values_monthly()
-                self.initAnalysisObj(monthlyAnalysis)
+                #self.generatex_values_monthly()
+                #self.initAnalysisObj(monthlyAnalysis)
+                self.initAnalysisObj(Analysis)
+                self.getAnalysisTemplate_vars()
+                self.generateOverallSummary()
+                self.renderhtml("html_templates/mainReport.html")
         else:
             self.generatex_values()
             self.initAnalysisObj(Analysis)
@@ -49,8 +61,11 @@ class Report(object):
 
     def initAnalysisObj(self, AnalysisClass):  # can add a thing at the bottom saying -> no data found for ...
         self.sitestoinclude = tuple(self.sitestoinclude)
-        sitedata = fetchbetweendates('desktop','password',self.host,self.datefrom,self.sitestoinclude)  # filtering out locations where no data is found
-        available_sites = [site[1] for site in sitedata]  # site 1 is the name
+        print(self.sitestoinclude)
+        sitedata = fetchbetweendates('desktop','password',self.host,self.datefrom,self.dateto,self.sitestoinclude)  # filtering out locations where no data is found
+        print(sitedata)
+        available_sites = [site[1] for site in sitedata] # site 1 is the name
+        print(available_sites)
         sitesincluded = list(OrderedDict.fromkeys(available_sites))  # dictionaries cant have any duplicates so useful here
         if len(sitesincluded) == 0: 
             self.anydata = False
@@ -87,7 +102,7 @@ class Report(object):
         return newlist
     
     def generatex_values(self):
-        self.months = array_circ(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],(datetime.today().month - 1))
+        self.months = array_circ(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],(self.dateto.month - 1))
         self.x_values = ()  # a tuple
         labels = []
         years = []
@@ -132,7 +147,8 @@ class Report(object):
         self.template_vars['barchart'] = 'temp/Overallbarchart.png'
         
     def generatereportpath(self):
-        self.reportPath = 'Past_Reports/'+ str(self.datefrom) + '_to_' + str(self.dateto) + '.pdf' #add a number depending on if there is another or not
+        self.reportTitle = str(self.datefrom) + '_to_' + str(self.dateto)
+        self.reportPath = 'Past_Reports/'+ self.reportTitle + '.pdf' # add a number depending on if there is another or not
         print(self.reportPath)
     
     def renderhtml(self,templatepath):
@@ -142,9 +158,16 @@ class Report(object):
             env = Environment(loader=FileSystemLoader('.'))
             self.template = env.get_template(templatepath)
             html_out = self.template.render(self.template_vars)
+            self.writeTofile(html_out)
             HTML(string=html_out,base_url=__file__).write_pdf(self.reportPath,stylesheets=["html_templates/style.css"])
             self.clearTemp()
-        
+    
+    def writeTofile(self,html):
+        htmlpath = 'Past_html/' + self.reportTitle + '.html'
+        f = open(htmlpath, 'w')
+        f.write(html)
+        f.close()
+
     def clearTemp(self):
         for filename in os.listdir('temp'):
             filepath = 'temp/' + filename
@@ -258,12 +281,14 @@ class weeklyAnalysis(Analysis):  # maybe add what percent it is at on the top of
         sitevars = [self.totalMean,self.numPaper,self.numPlastic,self.numGlass,self.avr_paper_usage,self.avr_plastic_usage,self.avr_glass_usage]
         return [self.sitename,self.graph_path,sitevars]
 
-
-class monthlyAnalysis(Analysis):
+class monthlyAnalysis(Analysis): # maybe not needed?? # work on as extra
     def __init__(self, title, x_values, y_values, siteInfo, entries):
         super(monthlyAnalysis, self).__init__(title, x_values, y_values, siteInfo, entries)
 
     def initAllGraphs(self):
+        pass
+
+    def getSiteProfile(self):
         pass
 
 class array_circ(object):
@@ -314,3 +339,4 @@ class array_circ(object):
         return self.currentsliceindexes
     
 ## maybe use a different method for the mean or just use the decimal?
+## default to bar chart if there is only one value
