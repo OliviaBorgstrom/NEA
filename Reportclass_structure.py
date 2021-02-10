@@ -14,17 +14,9 @@ import os
 class Report(object):
     def __init__(self,iscomparing,dateto,datefrom,filteredlocations,sitestoinclude,host):
         self.iscomparing = iscomparing[0]
-        print(self.iscomparing)
-        if iscomparing[0]:
-            self.comparepath = iscomparing[1]
-            print(comparepath)
-
         self.dataObjects = []
-        self.templatepath = 'path'
         self.datefrom = datefrom
-        print(self.datefrom,'datefrom')
         self.dateto = dateto
-        print(self.dateto,'dateto')
         self.sitestoinclude = sitestoinclude
         self.filteredlocations = filteredlocations
         self.host = host
@@ -45,6 +37,7 @@ class Report(object):
                 self.initAnalysisObj(weeklyAnalysis)
                 self.getAnalysisTemplate_vars()
                 self.renderhtml("html_templates/weeklyReport.html")
+                self.reportTitle = '(weekly)' + self.reportTitle
             else:
                 #self.generatex_values_monthly()
                 #self.initAnalysisObj(monthlyAnalysis)
@@ -58,20 +51,21 @@ class Report(object):
             self.getAnalysisTemplate_vars()
             self.generateOverallSummary()
             self.renderhtml("html_templates/mainReport.html")
+        
+        if iscomparing[0]:
+            comparepath = 'Past_html/' + iscomparing[1] + '.html'
+            self.compareReports(comparepath)
 
     def initAnalysisObj(self, AnalysisClass):  # can add a thing at the bottom saying -> no data found for ...
         self.sitestoinclude = tuple(self.sitestoinclude)
-        print(self.sitestoinclude)
         sitedata = fetchbetweendates('desktop','password',self.host,self.datefrom,self.dateto,self.sitestoinclude)  # filtering out locations where no data is found
-        print(sitedata)
         available_sites = [site[1] for site in sitedata] # site 1 is the name
-        print(available_sites)
-        sitesincluded = list(OrderedDict.fromkeys(available_sites))  # dictionaries cant have any duplicates so useful here
-        if len(sitesincluded) == 0: 
+        self.sitesincluded = list(OrderedDict.fromkeys(available_sites))  # dictionaries cant have any duplicates so useful here
+        if len(self.sitesincluded) == 0: 
             self.anydata = False
         else:   
-            sitedata_split = self.sublists(sitesincluded,sitedata,available_sites)
-            for i in range(len(sitesincluded)):
+            sitedata_split = self.sublists(self.sitesincluded,sitedata,available_sites)
+            for i in range(len(self.sitesincluded)):
                 self.dataObjects.append(AnalysisClass(self.x_values, self.y_values, self.filteredlocations[i],sitedata_split[i]))
         
 
@@ -79,14 +73,12 @@ class Report(object):
         #sitevars = [[each.totalMean,each.numPaper,each.numPlastic,each.numGlass,each.avr_paper_usage,each.avr_plastic_usage,each.avr_glass_usage] for each in self.dataObjects]
         #sites = [[self.dataObjects[i].sitename,self.dataObjects[i].usage_pngtitle,self.dataObjects[i].mean_pngtitle,sitevars[i]] for i in range(len(self.dataObjects))]
         sites = [each.getSiteProfile() for each in self.dataObjects]
-        print(sites,'sites')
-        
         totalMeans = [each.totalMean for each in self.dataObjects]
         maxID = np.argmax(totalMeans)
         minID = np.argmin(totalMeans)
         self.template_vars['mostUsed'] = [sites[maxID][0], totalMeans[maxID]]
         self.template_vars['leastUsed'] = [sites[minID][0], totalMeans[minID]]
-
+        self.template_vars['ListOfSites'] = self.sitesincluded
         self.template_vars['sites'] = sites
         
     def sublists(self,lookfor,lst,namesonly):  # sitedata has been alphabetically ordered by name
@@ -149,7 +141,6 @@ class Report(object):
     def generatereportpath(self):
         self.reportTitle = str(self.datefrom) + '_to_' + str(self.dateto)
         self.reportPath = 'Past_Reports/'+ self.reportTitle + '.pdf' # add a number depending on if there is another or not
-        print(self.reportPath)
     
     def renderhtml(self,templatepath):
         if not self.anydata:
@@ -162,6 +153,52 @@ class Report(object):
             HTML(string=html_out,base_url=__file__).write_pdf(self.reportPath,stylesheets=["html_templates/style.css"])
             self.clearTemp()
     
+    def compareReports(self,path): #remember number of bins could change between the two
+        sitesincluded = ['Boating Lake','Beeston Street','Asda Ellis Way']
+        with open('Past_html/2020-11-01_to_2021-02-01.html') as fh:
+            first_line = fh.readline()
+            sitesInComparison = ((first_line[5:-5]).replace(', ',',')).replace('\'','')
+            sitesInComparison = sitesInComparison.split(',')
+            
+            l = set(sitesincluded)  # using sets to find the intersection and see if empty
+            f = set(sitesInComparison)
+            intsect = l.intersection(f)
+    
+            if not intsect:  # an empty set is intepreted as false
+                self.comparing = False  # return a helpful message
+                print('none in common')
+                return
+
+        summary_boxes = self.extractSummaryBoxes(intsect)
+
+    def extractSummaryBoxes(self,wanted):
+        ''' this algorithm goes till the start reading tag then breaks so that the 
+        next for loop can continue from the line that the last one left off at
+        so as to not unnecessarily loop through too many lines'''
+        arr_summary_box = []
+        i = 0  # keeps track of which secondary list you are in
+        with open('Past_html/2020-11-01_to_2021-02-01.html') as fh:
+            for line in fh:
+                if line.strip() == '<!--_StartReading_-->': 
+                    break
+            for line in fh:  # This keeps reading the file
+                if line.strip() == '<!--_StopReading_-->':
+                    break
+                if line[:6] == '<!--S_':
+                    site = (line[6:].replace('-->','')).rstrip('\n')
+                    if site in wanted:
+                        arr_summary_box.append([site])
+                        for line in fh:
+                            if line.strip() == '<div class=\"summary_box\" style=\"width:450px\">': 
+                                break
+                        for line in fh: 
+                            if line.strip() == '</div>':
+                                break
+                            arr_summary_box[i].append(line.strip())
+                        i += 1
+        print(arr_summary_box)
+        return arr_summary_box
+
     def writeTofile(self,html):
         htmlpath = 'Past_html/' + self.reportTitle + '.html'
         f = open(htmlpath, 'w')

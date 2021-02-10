@@ -341,7 +341,8 @@ class createTab(QWidget):
         self.justnames = [location[1] for location in self.rawlocations]
         comparetoggle = [self.comparingreport]
         if self.comparingreport:
-            comparetoggle.append(self.selectedReport_text)      
+            comparetoggle.append(self.selectedReport_text[:-4])     
+            print(comparetoggle) 
 
         if self.choosebutton.isChecked():
             self.Cwindow = ChooseDialog(self.justnames)
@@ -648,3 +649,5 @@ app.exec()
 #a quarter is 3 months, e.g jan,feb,march - april,may,june ect
 
 #add an 'All' Checkbox at a laterdate. right now it is not needed
+
+#after creating the first report, shouldnt need to restart to see the compare button

@@ -19,9 +19,9 @@
     </div>
 </div>
 <div class="container">
-    <!--_StartReading_-->
+<!--_StartReading_-->
     {% for site in sites %}
-        <!--{{ site.0 }}-->
+<!--S_{{ site.0 }}-->
         <p style="page-break-before: always" ></p>
         <div class="center">
             <h2><b><u>Analysis for  - {{site.0}}</u></b></h2>
@@ -34,9 +34,9 @@
             <b> Plastic:- {{site.2.4}} % , Paper:- {{site.2.5}} % , Glass:- {{site.2.6}} % </b>
         </div>
         <img src= '{{site.1}}' style="width:500px">
-        <!--END-->
+<!--END-->
     {% endfor %}
-    <!--_StopReading_-->
+<!--_StopReading_-->
 </div>
 </body>
 </html>
