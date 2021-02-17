@@ -54,7 +54,7 @@ class TabWidget(QWidget):
         self.setFixedSize(700,500)  # x,y,width,height
         self.tabmenu = QTabWidget()
         #tabmenu.setTabsClosable(True)
-        tabs = [[homeTab(self),"home"],[createTab(),'create'],[importTab(),'import'],[viewTab(),'view']]
+        tabs = [[homeTab2(self),"home"],[createTab(),'create'],[viewTab(),'view']]
         for i in range(len(tabs)):
             self.tabmenu.addTab(tabs[i][0],tabs[i][1])
     
@@ -64,11 +64,11 @@ class TabWidget(QWidget):
         self.setLayout(mainbox)
     
     def inserthelp(self):
-        self.tabmenu.insertTab(4,helpTab(self),"help")
-        self.tabmenu.setCurrentIndex(4)
+        self.tabmenu.insertTab(3,helpTab(self),"help")
+        self.tabmenu.setCurrentIndex(3)
     
     def closehelp(self):
-        self.tabmenu.removeTab(4)
+        self.tabmenu.removeTab(3)
         self.tabmenu.setCurrentIndex(0)
 
         # mainbox is the encompassing layout for the whole window, the tabs are added to a box.
@@ -139,10 +139,83 @@ class homeTab(QWidget):
         else:
             os.system(r'explorer.exe C:\Users\Livi\Documents\GitHub\NEA\Past_Reports')
 
+class homeTab2(QWidget):
+    def __init__(self,tabobject):
+        super().__init__()
+        self.tabobject = tabobject
+        self.homebox = QVBoxLayout()
+        self.welcomeLabel = QLabel('Welcome to the NELincs Waste Manager')
+        self.welcomeLabel.setStyleSheet(("font: bold 18pt AGENTORANGE ; border: 1px solid #DCDCDC"))
+        self.welcomeLabel.setAlignment(QtCore.Qt.AlignCenter)
+        # WelcomeLabel.resize(, 25)
+        self.initActionsGrid()
+
+        self.homebox.addWidget(self.welcomeLabel,0)
+        self.homebox.addLayout(self.actionsGrid,1)
+    
+        self.setLayout(self.homebox)
+    
+    def initActionsGrid(self):
+        self.actionsGrid = QGridLayout()
+        self.actionsGrid.setColumnStretch(0,1)
+        self.actionsGrid.setColumnStretch(1,1)
+        self.actionsGrid.setRowStretch(0,1)
+        self.actionsGrid.setRowStretch(1,1)
+
+        help_text = QLabel('Need some help getting started?')
+        report_text = QLabel('View the reports you have created in the past.')
+        configure_text = QLabel('Add new sites or remove old ones from the program.')
+        import_text = QLabel('Import some new data into the database')
+
+        help_button = QPushButton('click here')
+        report_button = QPushButton('open file')
+        configure_button = QPushButton('configure')
+        import_button = QPushButton('import')
+
+        help_button.clicked.connect(self.tabobject.inserthelp)
+        report_button.clicked.connect(self.openfile)
+
+        boxes_list = [['Help', help_text, help_button, 0, 0],['Reports', report_text, report_button, 0, 1],
+                      ['Configure', configure_text, configure_button, 1, 0],['Import', import_text, import_button, 1, 1]]
+        
+        for each in boxes_list:
+            self.actionsGrid.addWidget(self.createGroup(each),each[3],each[4])
+    
+    def createGroup(self,info):
+        tempgroup = QGroupBox(info[0])
+        tempgroup.setAlignment(QtCore.Qt.AlignCenter)
+        tempgroup.setStyleSheet(("font: 15pt "))
+        text_and_button = QVBoxLayout()
+        
+        info[1].setWordWrap(True)
+        info[1].setAlignment(QtCore.Qt.AlignCenter)
+        info[1].setStyleSheet(("font: 13pt "))
+
+        info[2].setFixedSize(QtCore.QSize(120,30))
+        info[2].setStyleSheet(("font:  10pt "))
+        buttongroup = QVBoxLayout()
+        buttongroup.addWidget(info[2])
+        buttongroup.setAlignment(QtCore.Qt.AlignCenter)
+
+        text_and_button.addWidget(info[1])
+        text_and_button.addLayout(buttongroup)
+
+        tempgroup.setLayout(text_and_button)
+        return tempgroup
+        
+    def openfile(self):
+        if platform.system() == 'Linux':    # for my cross system development
+            os.system('dolphin /home/livi/NEA/Past_Reports')
+        else:
+            os.system(r'explorer.exe C:\Users\Livi\Documents\GitHub\NEA\Past_Reports')
+    
+    def configurePressed(self):
+        pass
+
 class createTab(QWidget):
     def __init__(self):
         super().__init__()
-        self.datefromclicked = False  # notes if they have ever been pressed 
+        self.datefromclicked = False  # notes if they have ever been pressed
         self.datetoclicked = False
         self.usingpresets = True  # assume they are using presets by default
         self.comparingreport = False  # assume they aren't comparing by default
@@ -231,7 +304,7 @@ class createTab(QWidget):
         self.sitesrow.addWidget(self.allsitesbutton)
         self.sitesrow.addWidget(self.choosebutton)
 
-        if len(os.listdir('Past_Reports')) != 0:   
+        if len(os.listdir('Past_Reports')) != 0:
             self.comparebutton = QPushButton('Compare with...')
             self.comparebutton.clicked.connect(self.compareButtonClicked)
             self.sitesrow.addWidget(self.comparebutton)
@@ -332,7 +405,7 @@ class createTab(QWidget):
                 print(e)
                 self.comparingreport = False
                 print("None selected")
-                return 
+                return
         else:
             return
 
@@ -341,8 +414,8 @@ class createTab(QWidget):
         self.justnames = [location[1] for location in self.rawlocations]
         comparetoggle = [self.comparingreport]
         if self.comparingreport:
-            comparetoggle.append(self.selectedReport_text[:-4])     
-            print(comparetoggle) 
+            comparetoggle.append(self.selectedReport_text[:-4])
+            print(comparetoggle)
 
         if self.choosebutton.isChecked():
             self.Cwindow = ChooseDialog(self.justnames)
@@ -365,7 +438,7 @@ class createTab(QWidget):
             self.comparingreport = False
             #allAnalysis()
         
-        else: 
+        else:
             return
       
 class importTab(QWidget):
@@ -502,7 +575,7 @@ class viewTab(QWidget):  # done now other than some improvements
     def rowclicked(self, row):
         try:
             self.currentRowSelected = self.currentTableData[row]
-        except:  # this means dont leave it without specifying a specific error
+        except AttributeError:  # this means dont leave it without specifying a specific error #i think it is attribute error
             self.validRowSelected = False
         else:
             self.validRowSelected = True
