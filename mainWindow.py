@@ -8,6 +8,7 @@ from QDialog_Edit import EditDialog
 from QDialog_Add import AddDialog
 from QDialog_Siteschoose import ChooseDialog
 from QDialog_Compare import CompareDialog
+from QDialog_Configure import ConfigureDialog
 from Create_Report import callAnalysis
 from Reportclass_structure import Report
 import sys
@@ -53,11 +54,14 @@ class TabWidget(QWidget):
         self.setWindowIcon(QIcon("gearicon.jpg"))
         self.setFixedSize(700,500)  # x,y,width,height
         self.tabmenu = QTabWidget()
+        self.homeTab = homeTab(self)
+        self.createTab = createTab()
+        self.viewTab = viewTab()
         #tabmenu.setTabsClosable(True)
-        tabs = [[homeTab2(self),"home"],[createTab(),'create'],[viewTab(),'view']]
+        #tabs = [[homeTab2(self),"home"],[createTab(),'create'],[viewTab(),'view']]
+        tabs = [[self.homeTab,"home"],[self.createTab,'create'],[self.viewTab,'view']]
         for i in range(len(tabs)):
             self.tabmenu.addTab(tabs[i][0],tabs[i][1])
-    
         # tabmenu is a PyQt5 widget which allows for tabs to be set out
         mainbox = QVBoxLayout()
         mainbox.addWidget(self.tabmenu)
@@ -76,72 +80,6 @@ class TabWidget(QWidget):
 class homeTab(QWidget):
     def __init__(self,tabobject):
         super().__init__()
-        homebox = QVBoxLayout()
-        # WelcomeLabel.resize(, 25)
-        #WelcomeLabel.setAlignment(QtCore.Qt.AlignCenter)
-        self.initWelcomeGroup(tabobject)
-        self.initImportGroup()
-        self.initSettingsGroup()
-
-        homebox.addWidget(self.welcomegroup)
-        homebox.addWidget(self.importgroup)
-        homebox.addWidget(self.settingsgroup)
-    
-        self.setLayout(homebox)
-
-    def initWelcomeGroup(self,tabobject):
-        self.welcomegroup = QGroupBox('Welcome to the NELincs Waste Manager')
-        #self.welcomegroup.setStyleSheet(("font: bold 10pt AGENTORANGE"))
-
-        HButtons = QHBoxLayout()
-        Seereports = QPushButton('See past reports')
-        Seereports.clicked.connect(self.openfile)
-        
-        Gethelp = QPushButton('How to get started?')
-        Gethelp.clicked.connect(tabobject.inserthelp)
-        SiteSettings = QPushButton('Manage your sites')
-        
-        HButtons.addWidget(Seereports)
-        HButtons.addWidget(Gethelp)
-        HButtons.addWidget(SiteSettings)
-
-        self.welcomegroup.setLayout(HButtons)
-
-    def initImportGroup(self):
-        self.importgroup = QGroupBox('Import some new data')
-        HButtons = QHBoxLayout()
-        
-        fromFile = QPushButton('Import from file')
-        
-        autoDetect = QPushButton('Automatically detect your files')
-        
-        HButtons.addWidget(fromFile)
-        HButtons.addWidget(autoDetect)
-
-        self.importgroup.setLayout(HButtons)
-
-    def initSettingsGroup(self):
-        self.settingsgroup = QGroupBox('Some general settings')
-        HButtons = QHBoxLayout()
-        
-        #fromFile = QPushButton('')
-        
-        #autoDetect = QPushButton('Automatically detect your files')
-        
-        #HButtons.addWidget(fromFile)
-        #HButtons.addWidget(autoDetect)
-
-        self.importgroup.setLayout(HButtons)
-        
-    def openfile(self):
-        if platform.system() == 'Linux':    # for my cross system development
-            os.system('dolphin /home/livi/NEA/Past_Reports')
-        else:
-            os.system(r'explorer.exe C:\Users\Livi\Documents\GitHub\NEA\Past_Reports')
-
-class homeTab2(QWidget):
-    def __init__(self,tabobject):
-        super().__init__()
         self.tabobject = tabobject
         self.homebox = QVBoxLayout()
         self.welcomeLabel = QLabel('Welcome to the NELincs Waste Manager')
@@ -154,7 +92,7 @@ class homeTab2(QWidget):
         self.homebox.addLayout(self.actionsGrid,1)
     
         self.setLayout(self.homebox)
-    
+
     def initActionsGrid(self):
         self.actionsGrid = QGridLayout()
         self.actionsGrid.setColumnStretch(0,1)
@@ -174,6 +112,7 @@ class homeTab2(QWidget):
 
         help_button.clicked.connect(self.tabobject.inserthelp)
         report_button.clicked.connect(self.openfile)
+        configure_button.clicked.connect(self.configurePressed)
 
         boxes_list = [['Help', help_text, help_button, 0, 0],['Reports', report_text, report_button, 0, 1],
                       ['Configure', configure_text, configure_button, 1, 0],['Import', import_text, import_button, 1, 1]]
@@ -210,7 +149,12 @@ class homeTab2(QWidget):
             os.system(r'explorer.exe C:\Users\Livi\Documents\GitHub\NEA\Past_Reports')
     
     def configurePressed(self):
-        pass
+        self.configureWindow = ConfigureDialog(sysuser,syspassword,syshost)
+        state = self.configureWindow.exec()
+        if state == 1:
+            self.tabobject.viewTab.refreshLocations()  # refresh the locations dropdown on the viewtab
+        else:
+            return
 
 class createTab(QWidget):
     def __init__(self):
@@ -484,6 +428,14 @@ class viewTab(QWidget):  # done now other than some improvements
 
         self.setLayout(self.viewbox)
         
+    def refreshLocations(self):
+        fetchedlocations = fetchLocations(sysuser,syspassword,syshost)
+        self.rawlocations = [(each[1],str(each[4]),str(each[3]),str(each[2])) for each in fetchedlocations]
+        self.locations,self.siteIDs = [location[1] for location in fetchedlocations],[location[0] for location in fetchedlocations]
+        self.sites.clear()
+        self.locations.insert(0,'All')
+        self.sites.addItems(self.locations)
+
     def initTopWidget(self):
         topWidget = QHBoxLayout()
         
@@ -575,7 +527,7 @@ class viewTab(QWidget):  # done now other than some improvements
     def rowclicked(self, row):
         try:
             self.currentRowSelected = self.currentTableData[row]
-        except AttributeError:  # this means dont leave it without specifying a specific error #i think it is attribute error
+        except IndexError:  # this means dont leave it without specifying a specific error #i think it is attribute error
             self.validRowSelected = False
         else:
             self.validRowSelected = True
@@ -607,6 +559,7 @@ class viewTab(QWidget):  # done now other than some improvements
             for j in range(len(data[i])):
                 self.dataTable.setItem(i,j,QTableWidgetItem(data[i][j]))
         self.setCurrentTableData(data)
+        print(self.currententryIDs)
 
     def setCurrentTableData(self, data):
         self.currentTableData = data
@@ -696,6 +649,7 @@ else:
     syspassword = "password"
     syshost = "192.168.0.184"
 
+print('hello')
 app = QApplication(sys.argv)
 mainWindow = TabWidget()
 #mainWindow.inserthelp()
