@@ -12,6 +12,17 @@ def deleteEntry(user,password,host,entryID):
     con.commit()
     con.close()
 
+def deleteLocation(user,password,host,locationID):
+    con = psycopg2.connect(database="livi", user=user, password=password,host=host)
+    #print("Database opened successfully")
+    cur = con.cursor()
+    parameters = '''
+    DELETE FROM locations
+    WHERE siteid = %s;'''
+    cur.execute(parameters, [locationID])
+    con.commit()
+    con.close()
+
 def fetchLocations(user,password,host):  # for windows test inputting the port as host
     con = psycopg2.connect(database="livi", user=user, password=password,host=host)
     #print("Database opened successfully")
@@ -84,6 +95,18 @@ def addTo(user,password,host,inputdate, locationid, avrglass, avrpaper, avrplast
     INSERT INTO sitedata(date,locationid,avrglass,avrpaper,avrplastic)
     VALUES(%s,%s,%s,%s,%s);'''
     data = (str(inputdate), locationid, avrglass, avrpaper, avrplastic)
+    cur.execute(parameters, data)
+    con.commit()
+    con.close()
+
+def addLocation(user,password,host,name,numglassbins,numpaperbins,numplasticbins):
+    con = psycopg2.connect(database="livi", user=user, password=password,host=host)
+    #print("Database opened successfully")
+    cur = con.cursor()
+    parameters = '''
+    INSERT INTO locations(name,glassnum,papernum,plasticnum)
+    VALUES(%s,%s,%s,%s);'''
+    data = (name, numglassbins, numpaperbins, numplasticbins)
     cur.execute(parameters, data)
     con.commit()
     con.close()
