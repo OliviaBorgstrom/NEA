@@ -377,3 +377,4 @@ class array_circ(object):
     
 ## maybe use a different method for the mean or just use the decimal?
 ## default to bar chart if there is only one value
+# need to generate an 'avarage' week value
