@@ -11,7 +11,7 @@ from weasyprint import HTML
 from pygal.style import Style,CleanStyle
 import os
 
-class Report(object):
+class Report(object):  # this init is way too long
     def __init__(self,iscomparing,dateto,datefrom,filteredlocations,sitestoinclude,host):
         self.iscomparing = iscomparing[0]
         self.dataObjects = []
@@ -21,7 +21,7 @@ class Report(object):
         self.filteredlocations = filteredlocations
         print(self.filteredlocations,'filteredlocations')
         self.host = host
-        self.anydata = True  # assume there is data by default 
+        self.anydata = True  # assume there is data by default
         self.generatereportpath()
 
         self.title = 'An Analysis of Bring To Site Usage Between ' + str(datefrom) + ' and ' + str(dateto)

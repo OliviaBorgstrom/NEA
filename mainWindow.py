@@ -9,11 +9,13 @@ from QDialog_Add import AddDialog
 from QDialog_Siteschoose import ChooseDialog
 from QDialog_Compare import CompareDialog
 from QDialog_Configure import ConfigureDialog
+from QDialog_ConfirmImport import ConfirmImport
 from Create_Report import callAnalysis
 from Reportclass_structure import Report
 import sys
 import os
 import platform
+import bisect
 
 #QApplication, QDialog, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QTableWidget, QLabel, QLineEdit, QPushButton,
 #List of used modules
@@ -136,19 +138,38 @@ class homeTab(QWidget):
         filter = "Text files (*.txt)"
         fileschosen = choose_txt.getOpenFileNames(self,title,"",filter)
         print(fileschosen)
+        entries_str = []
+        entries_database = []
         for i in range(len(fileschosen[0])):
             with open(fileschosen[0][i]) as fh:
                 data = fh.readline()
-                print(data)
                 newEntry = data.split('~')
-                newEntry = [datetime.strptime(newEntry[0], '%Y-%m-%d'),int(newEntry[1]),
-                            int(newEntry[2]),int(newEntry[3]),int(newEntry[4])]
                 print(newEntry)
-                addTo(sysuser,syspassword,syshost,newEntry[0],newEntry[1],newEntry[2], newEntry[3], newEntry[4])
-        
-        #you are adding multiple entries, please confirm
-        #bring up a dialog asking if you want to add this entry, maybe it should show when you click on view tab after adding a new entry
-        #asking you to confirm or remove these
+                entries_str.append(newEntry)
+                forDatabase = [datetime.strptime(newEntry[0], '%Y-%m-%d'),int(newEntry[1]),
+                               int(newEntry[2]),int(newEntry[3]),int(newEntry[4])]
+                entries_database.append(forDatabase)
+                
+        if len(entries_str) == 1:
+            addTo(sysuser,syspassword,syshost,forDatabase[0],forDatabase[1],forDatabase[2], forDatabase[3], forDatabase[4])
+        elif len(entries_str) > 1:  # if it is longer than one i would like to confirm they want to add
+            locations = fetchLocations(sysuser,syspassword,syshost)
+            onlyIDs = [location[0] for location in locations]
+            for each in entries_str:  # better way to do this?/ is there any way of doing .index on only a specific index of each part of the 2D array
+                temp = each[1]
+                tempIndex = onlyIDs.index(int(each[1]))
+                each[1] = locations[tempIndex][1]
+                print(each[1])
+            confirmWin = ConfirmImport(entries_str)
+            state = confirmWin.exec()
+            if state == 1:
+                for each in entries_database:
+                    addTo(sysuser, syspassword, syshost, each[0], each[1], each[2], each[3], each[4])
+            else:
+                return
+        else:
+            return
+
         self.tabobject.viewTab.refresh2()
         
 class createTab(QWidget):
@@ -381,10 +402,14 @@ class createTab(QWidget):
             return
 
 class viewTab(QWidget):  # done now other than some improvements
+    # add a 'filter between dates
     def __init__(self):
         super().__init__()
-        #filters = ['Location','From past:'] if i decide to add more filters
-        #to grab Location list use a SELECT query to the database
+
+        '''month numbers of the quarters
+           Q1 is 1,2,3 Q2 is 4,5,6
+           Q3 is 7,8,9 Q4 is 10,11,12'''
+
         self.viewbox = QVBoxLayout()
         self.rawlocations = fetchLocations(sysuser,syspassword,syshost)
         self.rawsitedata = fetchSitedata(sysuser,syspassword,syshost)  # might changefrom rawsitedata
@@ -488,23 +513,15 @@ class viewTab(QWidget):  # done now other than some improvements
     
         return bottomWidget
 
-    def refresh2(self):
+    def refresh2(self):  # change this to be refresh not refresh2
         self.rawsitedata = fetchSitedata(sysuser,syspassword,syshost)
         self.formatFromDB(self.rawlocations,self.rawsitedata)
         self.applyFilters()
-
-    def refresh(self,func):
-        def wrapper():
-            func()
-            self.rawsitedata = fetchSitedata(sysuser,syspassword,syshost)
-            self.formatFromDB(self.rawlocations,self.rawsitedata)
-            self.applyFilters()
-        return wrapper
-    
+ 
     def rowclicked(self, row):
         try:
             self.currentRowSelected = self.currentTableData[row]
-        except IndexError:  # this means dont leave it without specifying a specific error #i think it is attribute error
+        except IndexError:
             self.validRowSelected = False
         else:
             self.validRowSelected = True
@@ -512,7 +529,6 @@ class viewTab(QWidget):  # done now other than some improvements
             #print("Row %d was clicked" % (row))
             #print(self.currentRowSelected)
 
-    #@refresh
     def executeEdit(self):
         if not self.validRowSelected:
             return
@@ -582,14 +598,22 @@ class viewTab(QWidget):  # done now other than some improvements
                 self.currententryIDs.append(self.rawsitedata[i][0])  # entryid used here too
                 FilteredData.append(self.sitedata[i])
         return FilteredData
+    
+    def startOfThisQuarter(self):
+        thismonth = datetime.now().month
+        quarters = [1,4,7,10]
+        i = bisect.bisect_right(quarters,thismonth)
+        startofQmonth = quarters[i - 1]
+        return datetime(int(datetime.now().year), startofQmonth, 1)
 
     def applyFilters(self):
         # print(self.times.currentText(),'has been selected')
         self.thismonth = datetime.today().replace(day=1,hour=0, minute=0, second=0, microsecond=0)
         self.sevendaysago = (datetime.today() - timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0)
         self.thisyear = datetime.today().replace(day=1,month=1,hour=0, minute=0, second=0, microsecond=0)
-        self.thisquarter = (datetime.today() - timedelta(days=92)).replace(hour=0, minute=0, second=0, microsecond=0)
-       
+        self.thisquarter = self.startOfThisQuarter()
+        print(self.thisquarter)
+
         sitefilter = self.sites.currentText()
         timefilter = self.times.currentText()
 
@@ -624,9 +648,13 @@ class viewTab(QWidget):  # done now other than some improvements
 class helpTab(QWidget):
     def __init__(self,tabobject):
         super().__init__()
-        self.closetab = QPushButton('Close and contine')
+        self.explain = QLabel('''Here will be written instructions on how to use the program,
+                                 i just havent written them yet''')
+
+        self.closetab = QPushButton('Close and continue')
         self.closetab.clicked.connect(tabobject.closehelp)
         self.vbox = QVBoxLayout()
+        self.vbox.addWidget(self.explain)
         self.vbox.addWidget(self.closetab)
         self.setLayout(self.vbox)
 
@@ -676,3 +704,5 @@ app.exec()
 # use %s %s parameters to check formatting
 
 # change the order of the date edit box on add tab
+
+#need to make the timeframe select thing work
