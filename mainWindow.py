@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import * # noqa
 from PyQt5.QtGui import QIcon
 from PyQt5 import QtCore
 from PyQt5 import QtGui
-from Database import fetchLocations,fetchSitedata,deleteEntry
+from Database import fetchLocations,fetchSitedata,deleteEntry,addTo
 from datetime import datetime,timedelta
 from QDialog_Edit import EditDialog
 from QDialog_Add import AddDialog
@@ -17,34 +17,6 @@ import platform
 
 #QApplication, QDialog, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QTableWidget, QLabel, QLineEdit, QPushButton,
 #List of used modules
-
-class stack(object):
-    def __init__(self):
-        self.pointer = -1
-        self.body = []
-
-    def push(self,data):
-        self.body.append(data)
-        self.pointer += 1
-
-    def pop(self,data):
-        self.body.pop(pointer)
-        self.pointer -= 1
-
-    def topitem(self):
-        return self.body[self.pointer]
-
-    def isEmpty(self):
-        return self.body == []
-
-    def __len__(self):
-        return len(self.body)
-
-    def __str__(self):
-        return (str(self.body))[1:-1].replace(" ","")
-
-    def getcurrentpointer(self):
-        return self.pointer
 
 class TabWidget(QWidget):
     
@@ -103,7 +75,7 @@ class homeTab(QWidget):
         help_text = QLabel('Need some help getting started?')
         report_text = QLabel('View the reports you have created in the past.')
         configure_text = QLabel('Add new sites or remove old ones from the program.')
-        import_text = QLabel('Import some new data into the database')
+        import_text = QLabel('Import some new data into the database (shift and click to select multiple)')
 
         help_button = QPushButton('click here')
         report_button = QPushButton('open file')
@@ -113,6 +85,7 @@ class homeTab(QWidget):
         help_button.clicked.connect(self.tabobject.inserthelp)
         report_button.clicked.connect(self.openfile)
         configure_button.clicked.connect(self.configurePressed)
+        import_button.clicked.connect(self.importPressed)
 
         boxes_list = [['Help', help_text, help_button, 0, 0],['Reports', report_text, report_button, 0, 1],
                       ['Configure', configure_text, configure_button, 1, 0],['Import', import_text, import_button, 1, 1]]
@@ -155,7 +128,29 @@ class homeTab(QWidget):
             self.tabobject.viewTab.refreshLocations()  # refresh the locations dropdown on the viewtab
         else:
             return
-
+    
+    def importPressed(self):
+        choose_txt = QFileDialog()
+        choose_txt.setFileMode(QFileDialog.ExistingFiles)
+        title = 'Choose file(s) to import'
+        filter = "Text files (*.txt)"
+        fileschosen = choose_txt.getOpenFileNames(self,title,"",filter)
+        print(fileschosen)
+        for i in range(len(fileschosen[0])):
+            with open(fileschosen[0][i]) as fh:
+                data = fh.readline()
+                print(data)
+                newEntry = data.split('~')
+                newEntry = [datetime.strptime(newEntry[0], '%Y-%m-%d'),int(newEntry[1]),
+                            int(newEntry[2]),int(newEntry[3]),int(newEntry[4])]
+                print(newEntry)
+                addTo(sysuser,syspassword,syshost,newEntry[0],newEntry[1],newEntry[2], newEntry[3], newEntry[4])
+        
+        #you are adding multiple entries, please confirm
+        #bring up a dialog asking if you want to add this entry, maybe it should show when you click on view tab after adding a new entry
+        #asking you to confirm or remove these
+        self.tabobject.viewTab.refresh2()
+        
 class createTab(QWidget):
     def __init__(self):
         super().__init__()
@@ -384,27 +379,6 @@ class createTab(QWidget):
         
         else:
             return
-      
-class importTab(QWidget):
-    def __init__(self):
-        super().__init__()
-        importbox = QVBoxLayout()
-        ImportLabel = QLabel('Choose an option to import your files')
-        ImportLabel.setStyleSheet("font: bold 20pt AGENTORANGE")
-        #WelcomeLabel.resize(, 25)
-        ImportLabel.setAlignment(QtCore.Qt.AlignCenter)
-        
-        HButtons = QHBoxLayout()
-        fileImport = QPushButton('Import from file')
-        #fileImport.clicked.connect(self.openfile)
-        
-        fileAuto = QPushButton('Automatically detect to import')
-        HButtons.addWidget(fileImport)
-        HButtons.addWidget(fileAuto)
-
-        importbox.addWidget(ImportLabel)
-        importbox.addLayout(HButtons)
-        self.setLayout(importbox)
 
 class viewTab(QWidget):  # done now other than some improvements
     def __init__(self):
@@ -412,8 +386,6 @@ class viewTab(QWidget):  # done now other than some improvements
         #filters = ['Location','From past:'] if i decide to add more filters
         #to grab Location list use a SELECT query to the database
         self.viewbox = QVBoxLayout()
-        self.fstack = stack()  # a stack for currently applied filters
-
         self.rawlocations = fetchLocations(sysuser,syspassword,syshost)
         self.rawsitedata = fetchSitedata(sysuser,syspassword,syshost)  # might changefrom rawsitedata
 
@@ -493,17 +465,17 @@ class viewTab(QWidget):  # done now other than some improvements
         self.validRowSelected = False
         self.editButton.setToolTip('Select a row then press edit')
         self.editButton.setFixedSize(QtCore.QSize(120,30))
-        self.editButton.clicked.connect(self.refresh(self.executeEdit))
+        self.editButton.clicked.connect(self.executeEdit)
 
         self.addButton = QPushButton('Add')
         self.addButton.setToolTip('Manually type a new Entry')
         self.addButton.setFixedSize(QtCore.QSize(120,30))
-        self.addButton.clicked.connect(self.refresh(self.executeAdd))
+        self.addButton.clicked.connect(self.executeAdd)
 
         self.deleteButton = QPushButton('Delete')
         self.deleteButton.setToolTip('Delete an entry')
         self.deleteButton.setFixedSize(QtCore.QSize(120,30))
-        self.deleteButton.clicked.connect(self.refresh(self.executeDelete))
+        self.deleteButton.clicked.connect(self.executeDelete)
         
         alignButtons = QHBoxLayout()
         alignButtons.addWidget(self.editButton)
@@ -515,6 +487,11 @@ class viewTab(QWidget):  # done now other than some improvements
         bottomWidget.addLayout(alignButtons,1,0)
     
         return bottomWidget
+
+    def refresh2(self):
+        self.rawsitedata = fetchSitedata(sysuser,syspassword,syshost)
+        self.formatFromDB(self.rawlocations,self.rawsitedata)
+        self.applyFilters()
 
     def refresh(self,func):
         def wrapper():
@@ -541,17 +518,31 @@ class viewTab(QWidget):  # done now other than some improvements
             return
         else:
             self.Ewindow = EditDialog(self.currentRowSelected,self.locations, self.selectedEntryID, self.siteIDs,sysuser,syspassword,syshost)
-            self.Ewindow.exec()
+            state = self.Ewindow.exec()
+            if state == 1:
+                self.refresh2()  # refresh the locations dropdown on the viewtab
+            else:
+                return
     
     def executeAdd(self):
         self.Awindow = AddDialog(self.locations, self.siteIDs,sysuser,syspassword,syshost)
-        self.Awindow.exec()
+        state = self.Awindow.exec()
+        if state == 1:
+            self.refresh2()  # refresh the locations dropdown on the viewtab
+        else:
+            return
     
     def executeDelete(self):
         if not self.validRowSelected:
             return
         else:
-            deleteEntry(sysuser,syspassword,syshost,self.selectedEntryID)
+            try:  # a try except to catch any errors with the database or the entry not existing
+                deleteEntry(sysuser,syspassword,syshost,self.selectedEntryID)
+            except:  # not sure what error this would cause
+                print("there was an issue deleting that entry")
+                return
+            else:
+                self.refresh2()
     
     def appendToTable(self,data):
         self.dataTable.clearContents()
@@ -662,19 +653,26 @@ app.exec()
 
 #add a thing which shows up when someone trys to press edit without selecting anything first
 #need to make the page refresh when a dialog is closed - done but also refresesh on cancel or no changes
-#make to add the 'Add feature' for adding an entry
 
 #if it has 0 bins it shouldnt be editable at that site
 #change the button in help to a cross? if possible
 
 #make delete button with an are you sure thing
 
-#on the add dialog, put lables above the plastic peper glass ect
-#currently only appends 30 items to the table
+#on the add dialog, put lables above the plastic peper glass ect  # do the same on the site dialog
+#currently only appends 30 items to the table <=== (need a view more button)
 
 #text shows up when someone presses choose saying they can choose when they click create
 #a quarter is 3 months, e.g jan,feb,march - april,may,june ect
 
-#add an 'All' Checkbox at a laterdate. right now it is not needed
+# add an 'All' Checkbox at a laterdate. right now it is not needed
+# select and deselect all sites easily
 
-#after creating the first report, shouldnt need to restart to see the compare button
+# after creating the first report, shouldnt need to restart to see the compare button
+# maybe make location and sitedata global so it can be used throughout the program rather than fetching every time??
+
+# archive entries into text files when a location is deleted
+# check the formatting of the text file to make sure that it is a compatible file
+# use %s %s parameters to check formatting
+
+# change the order of the date edit box on add tab
