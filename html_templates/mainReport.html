@@ -1,0 +1,44 @@
+<!--{{ ListOfSites }}-->
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+</head>
+<body>
+<div class="container">
+    <div class="center">
+        <h2><b><u>{{ title }}</u></b></h2><br>
+        <h2><b><u>An Overall Summary</u></b></h2>
+    </div>
+    <div class="summary_box" style="width:450px">
+        <b>Most used site: {{ mostUsed.0 }} ({{ mostUsed.1 }}%)</b><br>
+        <b>Least used site: {{ leastUsed.0 }} ({{ leastUsed.1}}%)</b>
+    
+    </div>
+    <img src= '{{ barchart }}' style="width:500px">
+</div>
+<div class="container"> 
+<!--_StartReading_-->
+    {% for site in sites %}
+<!--S_{{ site.0 }}-->
+        <p style="page-break-before: always" ></p>
+        <div class="center">
+            <h2><b><u>Analysis for  - {{site.0}}</u></b></h2>
+        </div>
+        <div class="summary_box" style="width:450px">
+            <b>Total mean: {{site.3.0}} % <br></b>
+            <b>Number of bins:</b>
+            <!--IGNORE--><b> Plastic:- {{site.3.1}} , Paper:- {{site.3.2}} , Glass:- {{site.3.3}}</b><br>
+            <b>Total usage of bins:</b>
+            <b> Plastic:- {{site.3.4}} % , Paper:- {{site.3.5}} % , Glass:- {{site.3.6}} % </b><br>
+            {% include "temp/Asda_Ellis_Way.html" ignore missing %}
+        </div>
+        <img src= '{{site.1}}' style="width:500px">
+        <img src= '{{site.2}}' style="width:500px">
+<!--END-->
+    {% endfor %}
+<!--_StopReading_-->
+</div>
+</body>
+</html>

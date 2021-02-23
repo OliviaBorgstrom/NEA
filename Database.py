@@ -1,19 +1,69 @@
 import psycopg2
+from datetime import datetime
 
-def fetchLocations(port):  # for windows test inputting the port as host
-    con = psycopg2.connect(database="livi", user="livi", password="Pass1234",host=port)
+def deleteEntry(user,password,host,entryID):
+    con = psycopg2.connect(database="livi", user=user, password=password,host=host)
+    #print("Database opened successfully")
+    cur = con.cursor()
+    parameters = '''
+    DELETE FROM sitedata
+    WHERE entryid = %s;'''
+    cur.execute(parameters, [entryID])
+    con.commit()
+    con.close()
+
+def deleteLocation(user,password,host,locationID):
+    con = psycopg2.connect(database="livi", user=user, password=password,host=host)
+    #print("Database opened successfully")
+    cur = con.cursor()
+    parameters = '''
+    DELETE FROM locations
+    WHERE siteid = %s;'''
+    cur.execute(parameters, [locationID])
+    con.commit()
+    con.close()
+
+def fetchLocations(user,password,host):  # for windows test inputting the port as host
+    con = psycopg2.connect(database="livi", user=user, password=password,host=host)
     #print("Database opened successfully")
 
     cur = con.cursor()
-    cur.execute('''SELECT * FROM vw_locations;''')
+    cur.execute('''SELECT * FROM locations
+    ORDER BY name ASC;''')  # might want to add - order by name ASC (not sure if would break)
     rows = cur.fetchall()
     con.close()
     #locations = list(rows[i][1] for i in range(len(rows)))
     #return locations
     return rows
 
-def fetchSitedata(port):  # still need windows option
-    con = psycopg2.connect(database="livi", user="livi", password="Pass1234",host=port)
+def fetchspecificLocations(user,password,host,sitelist):  # for windows test inputting the port as host
+    con = psycopg2.connect(database="livi", user=user, password=password,host=host)
+    cur = con.cursor()
+    parameters = '''SELECT * FROM locations
+    WHERE name IN %s
+    ORDER BY name ASC;'''
+    cur.execute(parameters,(sitelist,))
+    rows = cur.fetchall()
+    con.close()
+    return rows
+
+def fetchbetweendates(user,password,host,datefrom,dateto,sitelist):
+    con = psycopg2.connect(database="livi", user=user, password=password,host=host)
+    cur = con.cursor()
+    print('Database opened')
+    parameters = '''SELECT date,name,avrpaper,avrplastic,avrglass FROM sitedata
+    INNER JOIN locations
+    ON locationid = siteid
+    WHERE date BETWEEN %s AND %s
+    AND name IN %s
+    ORDER BY name ASC;'''
+    cur.execute(parameters,(datefrom,dateto,sitelist))
+    rows = cur.fetchall()
+    con.close()
+    return rows
+
+def fetchSitedata(user,password,host):  # still need windows option
+    con = psycopg2.connect(database="livi", user=user, password=password,host=host)
     #print("Database opened successfully")
     cur = con.cursor()
     cur.execute('''SELECT entryid,date,name,avrglass,avrpaper,avrplastic FROM sitedata
@@ -24,8 +74,8 @@ def fetchSitedata(port):  # still need windows option
     con.close()
     return rows
 
-def editExisting(port, inputdate, locationid, avrglass, avrpaper, avrplastic, entryID):
-    con = psycopg2.connect(database="livi", user="livi", password="Pass1234",host=port)
+def editExisting(user,password,host, inputdate, locationid, avrglass, avrpaper, avrplastic, entryID):
+    con = psycopg2.connect(database="livi", user=user, password=password,host=host)
     #print("Database opened successfully")
     cur = con.cursor()
     parameters = '''
@@ -36,3 +86,29 @@ def editExisting(port, inputdate, locationid, avrglass, avrpaper, avrplastic, en
     cur.execute(parameters, data)
     con.commit()
     con.close()
+
+def addTo(user,password,host,inputdate, locationid, avrglass, avrpaper, avrplastic):
+    con = psycopg2.connect(database="livi", user=user, password=password,host=host)
+    #print("Database opened successfully")
+    cur = con.cursor()
+    parameters = '''
+    INSERT INTO sitedata(date,locationid,avrglass,avrpaper,avrplastic)
+    VALUES(%s,%s,%s,%s,%s);'''
+    data = (str(inputdate), locationid, avrglass, avrpaper, avrplastic)
+    cur.execute(parameters, data)
+    con.commit()
+    con.close()
+
+def addLocation(user,password,host,name,numglassbins,numpaperbins,numplasticbins):
+    con = psycopg2.connect(database="livi", user=user, password=password,host=host)
+    #print("Database opened successfully")
+    cur = con.cursor()
+    parameters = '''
+    INSERT INTO locations(name,glassnum,papernum,plasticnum)
+    VALUES(%s,%s,%s,%s);'''
+    data = (name, numglassbins, numpaperbins, numplasticbins)
+    cur.execute(parameters, data)
+    con.commit()
+    con.close()
+
+#i think it would break if the database was empty for sitedata

@@ -2,42 +2,21 @@ from PyQt5.QtWidgets import * # noqa
 from PyQt5.QtGui import QIcon
 from PyQt5 import QtCore
 from PyQt5 import QtGui
-from Database import fetchLocations,fetchSitedata
+from Database import fetchLocations,fetchSitedata,deleteEntry,addTo
 from datetime import datetime,timedelta
 from QDialog_Edit import EditDialog
+from QDialog_Add import AddDialog
+from QDialog_Siteschoose import ChooseDialog
+from QDialog_Compare import CompareDialog
+from QDialog_Configure import ConfigureDialog
+from Create_Report import callAnalysis
+from Reportclass_structure import Report
 import sys
 import os
 import platform
+
 #QApplication, QDialog, QMainWindow, QTabWidget, QWidget, QVBoxLayout, QTableWidget, QLabel, QLineEdit, QPushButton,
 #List of used modules
-
-class stack(object):
-    def __init__(self):
-        self.pointer = -1
-        self.body = []
-
-    def push(self,data):
-        self.body.append(data)
-        self.pointer += 1
-
-    def pop(self,data):
-        self.body.pop(pointer)
-        self.pointer -= 1
-
-    def topitem(self):
-        return self.body[self.pointer]
-
-    def isEmpty(self):
-        return self.body == []
-
-    def __len__(self):
-        return len(self.body)
-
-    def __str__(self):
-        return (str(self.body))[1:-1].replace(" ","")
-
-    def getcurrentpointer(self):
-        return self.pointer
 
 class TabWidget(QWidget):
     
@@ -45,24 +24,27 @@ class TabWidget(QWidget):
         super().__init__()
         self.setWindowTitle("NEL Wastebase")
         self.setWindowIcon(QIcon("gearicon.jpg"))
-        self.setGeometry(300,150,700,500)  # x,y,width,height
+        self.setFixedSize(700,500)  # x,y,width,height
         self.tabmenu = QTabWidget()
+        self.homeTab = homeTab(self)
+        self.createTab = createTab()
+        self.viewTab = viewTab()
         #tabmenu.setTabsClosable(True)
-        tabs = [[homeTab(self),"home"],[createTab(),'create'],[importTab(),'import'],[viewTab(),'view']]
+        #tabs = [[homeTab2(self),"home"],[createTab(),'create'],[viewTab(),'view']]
+        tabs = [[self.homeTab,"home"],[self.createTab,'create'],[self.viewTab,'view']]
         for i in range(len(tabs)):
             self.tabmenu.addTab(tabs[i][0],tabs[i][1])
-    
         # tabmenu is a PyQt5 widget which allows for tabs to be set out
         mainbox = QVBoxLayout()
         mainbox.addWidget(self.tabmenu)
         self.setLayout(mainbox)
     
     def inserthelp(self):
-        self.tabmenu.insertTab(4,helpTab(self),"help")
-        self.tabmenu.setCurrentIndex(4)
+        self.tabmenu.insertTab(3,helpTab(self),"help")
+        self.tabmenu.setCurrentIndex(3)
     
     def closehelp(self):
-        self.tabmenu.removeTab(4)
+        self.tabmenu.removeTab(3)
         self.tabmenu.setCurrentIndex(0)
 
         # mainbox is the encompassing layout for the whole window, the tabs are added to a box.
@@ -70,145 +52,342 @@ class TabWidget(QWidget):
 class homeTab(QWidget):
     def __init__(self,tabobject):
         super().__init__()
-        homebox = QVBoxLayout()
+        self.tabobject = tabobject
+        self.homebox = QVBoxLayout()
+        self.welcomeLabel = QLabel('Welcome to the NELincs Waste Manager')
+        self.welcomeLabel.setStyleSheet(("font: bold 18pt AGENTORANGE ; border: 1px solid #DCDCDC"))
+        self.welcomeLabel.setAlignment(QtCore.Qt.AlignCenter)
         # WelcomeLabel.resize(, 25)
-        #WelcomeLabel.setAlignment(QtCore.Qt.AlignCenter)
-        self.initWelcomeGroup(tabobject)
-        self.initImportGroup()
-        self.initSettingsGroup()
+        self.initActionsGrid()
 
-        homebox.addWidget(self.welcomegroup)
-        homebox.addWidget(self.importgroup)
-        homebox.addWidget(self.settingsgroup)
+        self.homebox.addWidget(self.welcomeLabel,0)
+        self.homebox.addLayout(self.actionsGrid,1)
     
-        self.setLayout(homebox)
+        self.setLayout(self.homebox)
 
-    def initWelcomeGroup(self,tabobject):
-        print(tabobject)
-        self.welcomegroup = QGroupBox('Welcome to the NELincs Waste Manager')
-        #self.welcomegroup.setStyleSheet(("font: bold 10pt AGENTORANGE"))
+    def initActionsGrid(self):
+        self.actionsGrid = QGridLayout()
+        self.actionsGrid.setColumnStretch(0,1)
+        self.actionsGrid.setColumnStretch(1,1)
+        self.actionsGrid.setRowStretch(0,1)
+        self.actionsGrid.setRowStretch(1,1)
 
-        HButtons = QHBoxLayout()
-        Seereports = QPushButton('See past reports')
-        Seereports.clicked.connect(self.openfile)
-        
-        Gethelp = QPushButton('How to get started?')
-        Gethelp.clicked.connect(tabobject.inserthelp)
-        SiteSettings = QPushButton('Manage your sites')
-        
-        HButtons.addWidget(Seereports)
-        HButtons.addWidget(Gethelp)
-        HButtons.addWidget(SiteSettings)
+        help_text = QLabel('Need some help getting started?')
+        report_text = QLabel('View the reports you have created in the past.')
+        configure_text = QLabel('Add new sites or remove old ones from the program.')
+        import_text = QLabel('Import some new data into the database (shift and click to select multiple)')
 
-        self.welcomegroup.setLayout(HButtons)
+        help_button = QPushButton('click here')
+        report_button = QPushButton('open file')
+        configure_button = QPushButton('configure')
+        import_button = QPushButton('import')
 
-    def initImportGroup(self):
-        self.importgroup = QGroupBox('Import some new data')
-        HButtons = QHBoxLayout()
-        
-        fromFile = QPushButton('Import from file')
-        
-        autoDetect = QPushButton('Automatically detect your files')
-        
-        HButtons.addWidget(fromFile)
-        HButtons.addWidget(autoDetect)
+        help_button.clicked.connect(self.tabobject.inserthelp)
+        report_button.clicked.connect(self.openfile)
+        configure_button.clicked.connect(self.configurePressed)
+        import_button.clicked.connect(self.importPressed)
 
-        self.importgroup.setLayout(HButtons)
+        boxes_list = [['Help', help_text, help_button, 0, 0],['Reports', report_text, report_button, 0, 1],
+                      ['Configure', configure_text, configure_button, 1, 0],['Import', import_text, import_button, 1, 1]]
+        
+        for each in boxes_list:
+            self.actionsGrid.addWidget(self.createGroup(each),each[3],each[4])
+    
+    def createGroup(self,info):
+        tempgroup = QGroupBox(info[0])
+        tempgroup.setAlignment(QtCore.Qt.AlignCenter)
+        tempgroup.setStyleSheet(("font: 15pt "))
+        text_and_button = QVBoxLayout()
+        
+        info[1].setWordWrap(True)
+        info[1].setAlignment(QtCore.Qt.AlignCenter)
+        info[1].setStyleSheet(("font: 13pt "))
 
-    def initSettingsGroup(self):
-        self.settingsgroup = QGroupBox('Some general settings')
-        HButtons = QHBoxLayout()
-        
-        #fromFile = QPushButton('')
-        
-        #autoDetect = QPushButton('Automatically detect your files')
-        
-        #HButtons.addWidget(fromFile)
-        #HButtons.addWidget(autoDetect)
+        info[2].setFixedSize(QtCore.QSize(120,30))
+        info[2].setStyleSheet(("font:  10pt "))
+        buttongroup = QVBoxLayout()
+        buttongroup.addWidget(info[2])
+        buttongroup.setAlignment(QtCore.Qt.AlignCenter)
 
-        self.importgroup.setLayout(HButtons)
+        text_and_button.addWidget(info[1])
+        text_and_button.addLayout(buttongroup)
+
+        tempgroup.setLayout(text_and_button)
+        return tempgroup
         
     def openfile(self):
         if platform.system() == 'Linux':    # for my cross system development
             os.system('dolphin /home/livi/NEA/Past_Reports')
         else:
             os.system(r'explorer.exe C:\Users\Livi\Documents\GitHub\NEA\Past_Reports')
-
+    
+    def configurePressed(self):
+        self.configureWindow = ConfigureDialog(sysuser,syspassword,syshost)
+        state = self.configureWindow.exec()
+        if state == 1:
+            self.tabobject.viewTab.refreshLocations()  # refresh the locations dropdown on the viewtab
+        else:
+            return
+    
+    def importPressed(self):
+        choose_txt = QFileDialog()
+        choose_txt.setFileMode(QFileDialog.ExistingFiles)
+        title = 'Choose file(s) to import'
+        filter = "Text files (*.txt)"
+        fileschosen = choose_txt.getOpenFileNames(self,title,"",filter)
+        print(fileschosen)
+        for i in range(len(fileschosen[0])):
+            with open(fileschosen[0][i]) as fh:
+                data = fh.readline()
+                print(data)
+                newEntry = data.split('~')
+                newEntry = [datetime.strptime(newEntry[0], '%Y-%m-%d'),int(newEntry[1]),
+                            int(newEntry[2]),int(newEntry[3]),int(newEntry[4])]
+                print(newEntry)
+                addTo(sysuser,syspassword,syshost,newEntry[0],newEntry[1],newEntry[2], newEntry[3], newEntry[4])
+        
+        #you are adding multiple entries, please confirm
+        #bring up a dialog asking if you want to add this entry, maybe it should show when you click on view tab after adding a new entry
+        #asking you to confirm or remove these
+        self.tabobject.viewTab.refresh2()
+        
 class createTab(QWidget):
     def __init__(self):
         super().__init__()
-        createbox = QVBoxLayout()
-        
-        chooseFromLabel = QLabel("Create a new report by choosing\nfrom the following:")
-        chooseFromLabel.setStyleSheet("font: 18pt AGENTORANGE")
-        chooseFromLabel.setAlignment(QtCore.Qt.AlignLeft)
+        self.datefromclicked = False  # notes if they have ever been pressed
+        self.datetoclicked = False
+        self.usingpresets = True  # assume they are using presets by default
+        self.comparingreport = False  # assume they aren't comparing by default
+        self.selectedReport_index = None
+        self.selectedpreset = 'Week'
+        self.currentmindate = QtCore.QDate.currentDate().addDays(-7)
+        self.currentmaxdate = QtCore.QDate.currentDate()
+        self.toplayer = QVBoxLayout()
+        self.grid_alignleft = QGridLayout()
+        self.calendars_group = QGroupBox('Use Data between two dates:')
+        self.presetdate_group = QGroupBox('OR')
+        self.calendars_box = QGridLayout()
+        self.create_align = QHBoxLayout()
 
-        datesRow = self.initButtonRow("Use data from the past:",['Week','Month','Quarter','Year'])
+        self.initUI()
 
-        sitesRow = self.initButtonRow("Include:",['All Sites','Choose ...'])
+        self.setLayout(self.toplayer)
+    
+    def initUI(self):
+        chooseFromLabel = QLabel("Create a new report by choosing from the following:")
+        chooseFromLabel.setStyleSheet("font: 18pt")
+        self.grid_alignleft.addWidget(chooseFromLabel, 0, 0)
+        self.grid_alignleft.setColumnStretch(0, 1)
+        self.grid_alignleft.setRowStretch(1, 1)
+
+        self.calendar_from = self.initCalendar()
+        self.calendar_to = self.initCalendar()
+
+        self.label_from = QLabel('Date From: ')
+        self.label_to = QLabel('Date To: ')
+        self.calendar_to.setToolTip('You have to select a date from first')
+        self.setCalendarDisabled(self.calendar_to)
+        self.calendar_from.clicked.connect(self.fromdateSelected)
+        self.calendar_to.clicked.connect(self.todateSelected)
+        self.calendars_box.addWidget(self.label_from,1,0)
+        self.calendars_box.addWidget(self.label_to,1,1)
+        self.calendars_box.addWidget(self.calendar_from,0,0)
+        self.calendars_box.addWidget(self.calendar_to,0,1)
+        self.calendars_group.setLayout(self.calendars_box)
+
+        self.initdatesrow()
+        self.presetdate_group.setLayout(self.datesrow)
+
+        self.initsitesrow()
 
         createButton = QPushButton("Create")
-        createButton.setStyleSheet("font: 10pt AGENTORANGE")
+        createButton.setFixedSize(QtCore.QSize(120,30))
+        createButton.clicked.connect(self.createButtonClicked)
+        self.create_align.addWidget(createButton)
+        self.create_align.setAlignment(QtCore.Qt.AlignRight)
 
-        createbox.addWidget(chooseFromLabel,0)
-        createbox.addLayout(datesRow,1)
-        createbox.addLayout(sitesRow,2)
-        createbox.addWidget(createButton,3)
+        self.toplayer.addLayout(self.grid_alignleft)
+        self.toplayer.addWidget(self.calendars_group,1)
+        self.toplayer.addWidget(self.presetdate_group,2)
+        self.toplayer.addLayout(self.sitesrow,3)
+        self.toplayer.addLayout(self.create_align,4)
 
-        self.setLayout(createbox)
-
-    def initButtonRow(self,label,items):  # initialises layouts for dates and sites
-        HRow = QHBoxLayout()
-        HRowlabel = QLabel(label)
-        HRowlabel.setStyleSheet("font: 12pt AGENTORANGE")
-        HRowButtons = QButtonGroup()
-        HButtonslayout = QHBoxLayout()
-       
-        for i in range(len(items)):
-            tempbutton = QPushButton(items[i])
-            tempbutton.setStyleSheet("font: 10pt AGENTORANGE")
-            tempbutton.setCheckable(True)
-            HRowButtons.addButton(tempbutton)
-            HButtonslayout.addWidget(tempbutton)
+    def initdatesrow(self):
+        self.datesrow = QHBoxLayout()
+        self.deselectbutton = QPushButton('Deselect')
+        self.deselectbutton.setFixedSize(QtCore.QSize(120,30))
+        self.deselectbutton.setToolTip('Deselect this to use the calendar instead')
+        self.deselectbutton.clicked.connect(self.deselectbuttonpressed)
         
-        HRowButtons.setExclusive(True)
-        
-        HRow.addWidget(HRowlabel)
-        HRow.addLayout(HButtonslayout)
-        
-        return HRow
+        self.dateslabel = QLabel('Use data from:')
+        self.preset_dates = QComboBox()
+        self.preset_dates.addItems(['Past 7 Days','This Month','This Quarter','This Year'])
+        self.preset_dates.currentIndexChanged.connect(self.presetdateselected)
+        self.datesrow.addWidget(self.dateslabel)
+        self.datesrow.addWidget(self.preset_dates)
+        self.datesrow.addWidget(self.deselectbutton)
 
-class importTab(QWidget):
-    def __init__(self):
-        super().__init__()
-        importbox = QVBoxLayout()
-        ImportLabel = QLabel('Choose an option to import your files')
-        ImportLabel.setStyleSheet("font: bold 20pt AGENTORANGE")
-        #WelcomeLabel.resize(, 25)
-        ImportLabel.setAlignment(QtCore.Qt.AlignCenter)
-        
-        HButtons = QHBoxLayout()
-        fileImport = QPushButton('Import from file')
-        #fileImport.clicked.connect(self.openfile)
-        
-        fileAuto = QPushButton('Automatically detect to import')
-        HButtons.addWidget(fileImport)
-        HButtons.addWidget(fileAuto)
+    def initsitesrow(self):
+        self.sitesrow = QHBoxLayout()
+        self.radiogroup = QButtonGroup()
 
-        importbox.addWidget(ImportLabel)
-        importbox.addLayout(HButtons)
-        self.setLayout(importbox)
+        self.siteslabel = QLabel('Include:')
+        self.allsitesbutton = QRadioButton('All sites')
+        self.allsitesbutton.setChecked(True)
+        self.choosebutton = QRadioButton('Choose...')
 
-class viewTab(QWidget):  # done now other than some improvements and potentially an 'Add' button
+        self.radiogroup.addButton(self.allsitesbutton)
+        self.radiogroup.addButton(self.choosebutton)
+
+        self.sitesrow.addWidget(self.siteslabel)
+        self.sitesrow.addWidget(self.allsitesbutton)
+        self.sitesrow.addWidget(self.choosebutton)
+
+        if len(os.listdir('Past_Reports')) != 0:
+            self.comparebutton = QPushButton('Compare with...')
+            self.comparebutton.clicked.connect(self.compareButtonClicked)
+            self.sitesrow.addWidget(self.comparebutton)
+
+        self.sitesrow.addStretch()
+
+    def initCalendar(self):
+        currentMonth = datetime.now().month
+        currentYear = datetime.now().year
+        currentDay = datetime.now().day
+        calendar = QCalendarWidget(self)
+        formating = QtGui.QTextCharFormat()
+        formating.setForeground(QtGui.QBrush(QtGui.QColor('white'),QtCore.Qt.SolidPattern))
+        calendar.setWeekdayTextFormat(QtCore.Qt.Saturday, formating)
+        calendar.setWeekdayTextFormat(QtCore.Qt.Sunday, formating)
+        calendar.setMaximumDate(QtCore.QDate(currentYear, currentMonth, currentDay))
+        calendar.setSelectedDate(QtCore.QDate(currentYear, currentMonth, currentDay))
+
+        return calendar
+        
+    def fromdateSelected(self):
+        if not self.datefromclicked:
+            self.setCalendarEnabled(self.calendar_to)
+            self.datefromclicked = True
+            self.usingpresets = False  # change to false on first time
+        else:
+            if self.calendar_from.selectedDate() > self.calendar_to.selectedDate():
+                self.calendar_to.setSelectedDate(self.calendar_from.selectedDate())  # confused how this works
+                self.todateSelected()
+            self.calendar_to.setMinimumDate(self.calendar_from.selectedDate())
+        qDate = self.calendar_from.selectedDate()
+        self.currentmindate = self.calendar_from.selectedDate()
+        newtext = 'Date From: ' + '{0}/{1}/{2}'.format(qDate.day(),qDate.month(),qDate.year())
+        self.label_from.setText(newtext)
+    
+    def todateSelected(self):
+        if not self.datetoclicked:
+            self.datetoclicked = True
+        qDate = self.calendar_to.selectedDate()
+        newtext = 'Date To: ' + '{0}/{1}/{2}'.format(qDate.day(),qDate.month(),qDate.year())
+        self.label_to.setText(newtext)
+        self.currentmaxdate = self.calendar_to.selectedDate()
+
+    def setCalendarDisabled(self,calendar):
+        calendar.setDisabled(True)
+        formating = QtGui.QTextCharFormat()
+        formating.setForeground(QtGui.QBrush(QtGui.QColor('grey'),QtCore.Qt.SolidPattern))
+        calendar.setWeekdayTextFormat(QtCore.Qt.Saturday, formating)
+        calendar.setWeekdayTextFormat(QtCore.Qt.Sunday, formating)
+    
+    def setCalendarEnabled(self,calendar):
+        calendar.setDisabled(False)
+        formating = QtGui.QTextCharFormat()
+        formating.setForeground(QtGui.QBrush(QtGui.QColor('white'),QtCore.Qt.SolidPattern))
+        calendar.setWeekdayTextFormat(QtCore.Qt.Saturday, formating)
+        calendar.setWeekdayTextFormat(QtCore.Qt.Sunday, formating)
+        self.calendar_to.setMinimumDate(self.calendar_from.selectedDate())
+        self.calendar_to_Minim = self.calendar_from.selectedDate()
+
+    def presetdateselected(self):
+        if not self.usingpresets:
+            self.usingpresets = True
+            self.selectedpreset = self.preset_dates.currentText()
+            self.setCalendarDisabled(self.calendar_from)
+            self.setCalendarDisabled(self.calendar_to)
+        else:
+            self.selectedpreset = self.preset_dates.currentText()
+        self.currentmindate = self.timeSwitcher(self.selectedpreset)
+
+    def timeSwitcher(self,currenttext):  # fix quarter and can also do this a different way like did in calendar
+        switcher = {
+            'This Year': datetime.today().replace(day=1,month=1,hour=0, minute=0, second=0, microsecond=0),
+            'Past 7 Days':(datetime.today() - timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0),
+            'This Month': datetime.today().replace(day=1,hour=0, minute=0, second=0, microsecond=0),
+            'This Quarter': (datetime.today() - timedelta(days=92)).replace(hour=0, minute=0, second=0, microsecond=0)
+        }
+        return switcher.get(currenttext,'Error: unknown time frame')
+        
+    def deselectbuttonpressed(self):
+        if not self.usingpresets or not self.datefromclicked:  # if a time hasnt been selected
+            return
+        else:
+            self.usingpresets = False
+            self.setCalendarEnabled(self.calendar_from)
+            self.setCalendarEnabled(self.calendar_to)
+
+    def compareButtonClicked(self):
+        self.CompareWindow = CompareDialog(self.comparingreport,self.selectedReport_index)
+        state = self.CompareWindow.exec()
+        if state == 1:
+            try:
+                returned = self.CompareWindow.radiobuttongroup.checkedButton().text()
+                self.comparingreport = True
+                self.selectedReport_index = self.CompareWindow.radiobuttongroup.checkedId()
+                self.selectedReport_text = returned
+                print(returned)
+            except Exception as e:
+                print(e)
+                self.comparingreport = False
+                print("None selected")
+                return
+        else:
+            return
+
+    def createButtonClicked(self):
+        self.rawlocations = fetchLocations(sysuser,syspassword,syshost)  # just need to fetch specific locations here
+        self.justnames = [location[1] for location in self.rawlocations]
+        comparetoggle = [self.comparingreport]
+        if self.comparingreport:
+            comparetoggle.append(self.selectedReport_text[:-4])
+            print(comparetoggle)
+
+        if self.choosebutton.isChecked():
+            self.Cwindow = ChooseDialog(self.justnames)
+            state = self.Cwindow.exec()
+            
+            if state == 1:
+                returned = self.Cwindow.selectedlist
+                self.chosenlocationdata = [i for i in self.rawlocations if i[1] in returned]
+                thingy = Report(comparetoggle,self.currentmaxdate.toPyDate(),self.currentmindate.toPyDate(),self.chosenlocationdata,returned,syshost)
+                print(thingy)
+                self.comparingreport = False
+                #callAnalysis(self.currentmindate.toPyDate(),self.chosenlocationdata,returned,sysuser,syspassword,syshost)
+          
+            else:
+                return
+
+        elif self.allsitesbutton.isChecked():  # else all sites must be selected
+            thingy = Report(comparetoggle,self.currentmaxdate.toPyDate(),self.currentmindate.toPyDate(),self.rawlocations,self.justnames,syshost)
+            print(thingy)
+            self.comparingreport = False
+            #allAnalysis()
+        
+        else:
+            return
+
+class viewTab(QWidget):  # done now other than some improvements
     def __init__(self):
         super().__init__()
         #filters = ['Location','From past:'] if i decide to add more filters
         #to grab Location list use a SELECT query to the database
         self.viewbox = QVBoxLayout()
-        self.fstack = stack()  # a stack for currently applied filters
-
-        self.rawlocations = fetchLocations("Localhost")
-        self.rawsitedata = fetchSitedata("Localhost")  # might changefrom rawsitedata
+        self.rawlocations = fetchLocations(sysuser,syspassword,syshost)
+        self.rawsitedata = fetchSitedata(sysuser,syspassword,syshost)  # might changefrom rawsitedata
 
         self.formatFromDB(self.rawlocations,self.rawsitedata)
         self.currentTableData = self.sitedata
@@ -221,6 +400,14 @@ class viewTab(QWidget):  # done now other than some improvements and potentially
 
         self.setLayout(self.viewbox)
         
+    def refreshLocations(self):
+        fetchedlocations = fetchLocations(sysuser,syspassword,syshost)
+        self.rawlocations = [(each[1],str(each[4]),str(each[3]),str(each[2])) for each in fetchedlocations]
+        self.locations,self.siteIDs = [location[1] for location in fetchedlocations],[location[0] for location in fetchedlocations]
+        self.sites.clear()
+        self.locations.insert(0,'All')
+        self.sites.addItems(self.locations)
+
     def initTopWidget(self):
         topWidget = QHBoxLayout()
         
@@ -278,17 +465,38 @@ class viewTab(QWidget):  # done now other than some improvements and potentially
         self.validRowSelected = False
         self.editButton.setToolTip('Select a row then press edit')
         self.editButton.setFixedSize(QtCore.QSize(120,30))
-        self.editButton.clicked.connect(self.refresh(self.execute))
-       
-        bottomWidget.addWidget(self.dataTable, 0, 0)
-        bottomWidget.addWidget(self.editButton,1,0)
+        self.editButton.clicked.connect(self.executeEdit)
+
+        self.addButton = QPushButton('Add')
+        self.addButton.setToolTip('Manually type a new Entry')
+        self.addButton.setFixedSize(QtCore.QSize(120,30))
+        self.addButton.clicked.connect(self.executeAdd)
+
+        self.deleteButton = QPushButton('Delete')
+        self.deleteButton.setToolTip('Delete an entry')
+        self.deleteButton.setFixedSize(QtCore.QSize(120,30))
+        self.deleteButton.clicked.connect(self.executeDelete)
         
+        alignButtons = QHBoxLayout()
+        alignButtons.addWidget(self.editButton)
+        alignButtons.addWidget(self.addButton)
+        alignButtons.addWidget(self.deleteButton)
+        alignButtons.addStretch(1)
+        
+        bottomWidget.addWidget(self.dataTable, 0, 0)
+        bottomWidget.addLayout(alignButtons,1,0)
+    
         return bottomWidget
+
+    def refresh2(self):
+        self.rawsitedata = fetchSitedata(sysuser,syspassword,syshost)
+        self.formatFromDB(self.rawlocations,self.rawsitedata)
+        self.applyFilters()
 
     def refresh(self,func):
         def wrapper():
             func()
-            self.rawsitedata = fetchSitedata("Localhost")
+            self.rawsitedata = fetchSitedata(sysuser,syspassword,syshost)
             self.formatFromDB(self.rawlocations,self.rawsitedata)
             self.applyFilters()
         return wrapper
@@ -296,7 +504,7 @@ class viewTab(QWidget):  # done now other than some improvements and potentially
     def rowclicked(self, row):
         try:
             self.currentRowSelected = self.currentTableData[row]
-        except:
+        except IndexError:  # this means dont leave it without specifying a specific error #i think it is attribute error
             self.validRowSelected = False
         else:
             self.validRowSelected = True
@@ -305,12 +513,36 @@ class viewTab(QWidget):  # done now other than some improvements and potentially
             #print(self.currentRowSelected)
 
     #@refresh
-    def execute(self):
+    def executeEdit(self):
         if not self.validRowSelected:
             return
         else:
-            self.Ewindow = EditDialog(self.currentRowSelected,self.locations, self.selectedEntryID, self.siteIDs)
-            self.Ewindow.exec()
+            self.Ewindow = EditDialog(self.currentRowSelected,self.locations, self.selectedEntryID, self.siteIDs,sysuser,syspassword,syshost)
+            state = self.Ewindow.exec()
+            if state == 1:
+                self.refresh2()  # refresh the locations dropdown on the viewtab
+            else:
+                return
+    
+    def executeAdd(self):
+        self.Awindow = AddDialog(self.locations, self.siteIDs,sysuser,syspassword,syshost)
+        state = self.Awindow.exec()
+        if state == 1:
+            self.refresh2()  # refresh the locations dropdown on the viewtab
+        else:
+            return
+    
+    def executeDelete(self):
+        if not self.validRowSelected:
+            return
+        else:
+            try:  # a try except to catch any errors with the database or the entry not existing
+                deleteEntry(sysuser,syspassword,syshost,self.selectedEntryID)
+            except:  # not sure what error this would cause
+                print("there was an issue deleting that entry")
+                return
+            else:
+                self.refresh2()
     
     def appendToTable(self,data):
         self.dataTable.clearContents()
@@ -318,6 +550,7 @@ class viewTab(QWidget):  # done now other than some improvements and potentially
             for j in range(len(data[i])):
                 self.dataTable.setItem(i,j,QTableWidgetItem(data[i][j]))
         self.setCurrentTableData(data)
+        print(self.currententryIDs)
 
     def setCurrentTableData(self, data):
         self.currentTableData = data
@@ -327,6 +560,9 @@ class viewTab(QWidget):  # done now other than some improvements and potentially
         self.sitedata = [(str(site[1]),site[2],str(site[3]),str(site[4]),str(site[5])) for site in sitedata]
         #print(self.locations)
         #print(self.sitedata)
+    
+    def getlocations(self):  # return locations
+        return self.locations
 
     def timeSwitcher(self):
         currenttext = self.times.currentText()
@@ -395,6 +631,16 @@ class helpTab(QWidget):
         self.setLayout(self.vbox)
 
 #QApplication.setStyle(QtGui.QStyleFactory.create('cleanlooks'))    #work on making the appearance 'cleaner'
+if platform.system() == 'Linux':    # for my cross system development
+    sysuser = "livi"
+    syspassword = "Pass1234"
+    syshost = "localhost"
+else:
+    sysuser = "desktop"
+    syspassword = "password"
+    syshost = "192.168.0.184"
+
+print('hello')
 app = QApplication(sys.argv)
 mainWindow = TabWidget()
 #mainWindow.inserthelp()
@@ -407,7 +653,26 @@ app.exec()
 
 #add a thing which shows up when someone trys to press edit without selecting anything first
 #need to make the page refresh when a dialog is closed - done but also refresesh on cancel or no changes
-#make to add the 'Add feature' for adding an entry
 
 #if it has 0 bins it shouldnt be editable at that site
 #change the button in help to a cross? if possible
+
+#make delete button with an are you sure thing
+
+#on the add dialog, put lables above the plastic peper glass ect  # do the same on the site dialog
+#currently only appends 30 items to the table <=== (need a view more button)
+
+#text shows up when someone presses choose saying they can choose when they click create
+#a quarter is 3 months, e.g jan,feb,march - april,may,june ect
+
+# add an 'All' Checkbox at a laterdate. right now it is not needed
+# select and deselect all sites easily
+
+# after creating the first report, shouldnt need to restart to see the compare button
+# maybe make location and sitedata global so it can be used throughout the program rather than fetching every time??
+
+# archive entries into text files when a location is deleted
+# check the formatting of the text file to make sure that it is a compatible file
+# use %s %s parameters to check formatting
+
+# change the order of the date edit box on add tab
