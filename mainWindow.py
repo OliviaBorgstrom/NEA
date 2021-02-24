@@ -10,7 +10,6 @@ from QDialog_Siteschoose import ChooseDialog
 from QDialog_Compare import CompareDialog
 from QDialog_Configure import ConfigureDialog
 from QDialog_ConfirmImport import ConfirmImport
-from Create_Report import callAnalysis
 from Reportclass_structure import Report
 import sys
 import os
