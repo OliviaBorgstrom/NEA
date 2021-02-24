@@ -47,6 +47,7 @@ class EditDialog(QDialog):
 
         self.siteDropDown = QComboBox()
         self.siteDropDown.addItems(self.locations)
+        print(self.locations)
         self.siteDropDown.setCurrentIndex(self.locations.index(self.rowdata[1]))  # set it to be current site id index
         self.siteDropDown.currentIndexChanged.connect(self.checkIfDisable)
 
@@ -68,7 +69,8 @@ class EditDialog(QDialog):
     
     def checkIfDisable(self):
         x = self.siteDropDown.currentIndex()
-        binnumbers = self.locationInfo[x][2:]
+        binnumbers = list(self.locationInfo[x][2:])
+        binnumbers.reverse()
         print(binnumbers)
         for i in range(len(binnumbers)):
             if binnumbers[i] == 0:

@@ -103,8 +103,11 @@ class ConfigureDialog(QDialog):
                 self.showAnError('A site name should contain only letters, not numbers!')
             else:
                 self.anythingChanged = True
+                text = addsite.nameLine.text()
+                text = text.strip()
+                print(text)
                 addLocation(self.user,self.password,self.host,
-                            addsite.nameLine.text(),addsite.addglassbins.value(),
+                            text,addsite.addglassbins.value(),
                             addsite.addpaperbins.value(),addsite.addplasticbins.value())
                 self.refresh2()
         else:

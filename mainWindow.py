@@ -143,7 +143,6 @@ class homeTab(QWidget):
             with open(fileschosen[0][i]) as fh:
                 data = fh.readline()
                 newEntry = data.split('~')
-                print(newEntry)
                 entries_str.append(newEntry)
                 forDatabase = [datetime.strptime(newEntry[0], '%Y-%m-%d'),int(newEntry[1]),
                                int(newEntry[2]),int(newEntry[3]),int(newEntry[4])]
@@ -158,7 +157,6 @@ class homeTab(QWidget):
                 temp = each[1]
                 tempIndex = onlyIDs.index(int(each[1]))
                 each[1] = locations[tempIndex][1]
-                print(each[1])
             confirmWin = ConfirmImport(entries_str)
             state = confirmWin.exec()
             if state == 1:
@@ -425,9 +423,13 @@ class viewTab(QWidget):  # done now other than some improvements
         self.setLayout(self.viewbox)
         
     def refreshLocations(self):
-        fetchedlocations = fetchLocations(sysuser,syspassword,syshost)
-        self.rawlocations = [(each[1],str(each[4]),str(each[3]),str(each[2])) for each in fetchedlocations]
-        self.locations,self.siteIDs = [location[1] for location in fetchedlocations],[location[0] for location in fetchedlocations]
+        self.rawlocations = fetchLocations(sysuser,syspassword,syshost)
+        #self.rawlocations = [(each[1],str(each[4]),str(each[3]),str(each[2])) for each in fetchedlocations]
+        self.locations = [location[1] for location in self.rawlocations]
+        print(self.locations)
+        self.siteIDs = [location[0] for location in self.rawlocations]
+        print(self.siteIDs)
+        print(self.locations)
         self.sites.clear()
         self.locations.insert(0,'All')
         self.sites.addItems(self.locations)
@@ -565,7 +567,7 @@ class viewTab(QWidget):  # done now other than some improvements
             for j in range(len(data[i])):
                 self.dataTable.setItem(i,j,QTableWidgetItem(data[i][j]))
         self.setCurrentTableData(data)
-        print(self.currententryIDs)
+        #print(self.currententryIDs)
 
     def setCurrentTableData(self, data):
         self.currentTableData = data
@@ -611,8 +613,6 @@ class viewTab(QWidget):  # done now other than some improvements
         self.sevendaysago = (datetime.today() - timedelta(days=7)).replace(hour=0, minute=0, second=0, microsecond=0)
         self.thisyear = datetime.today().replace(day=1,month=1,hour=0, minute=0, second=0, microsecond=0)
         self.thisquarter = self.startOfThisQuarter()
-        print(self.thisquarter)
-
         sitefilter = self.sites.currentText()
         timefilter = self.times.currentText()
 
@@ -667,7 +667,6 @@ else:
     syspassword = "password"
     syshost = "192.168.0.184"
 
-print('hello')
 app = QApplication(sys.argv)
 mainWindow = TabWidget()
 #mainWindow.inserthelp()

@@ -19,7 +19,6 @@ class Report(object):  # this init is way too long
         self.dateto = dateto
         self.sitestoinclude = sitestoinclude
         self.filteredlocations = filteredlocations
-        print(self.filteredlocations,'filteredlocations')
         self.host = host
         self.anydata = True  # assume there is data by default
         self.generatereportpath()
@@ -59,12 +58,9 @@ class Report(object):  # this init is way too long
 
     def initAnalysisObj(self, AnalysisClass):  # can add a thing at the bottom saying -> no data found for ...
         self.sitestoinclude = tuple(self.sitestoinclude)
-        print(self.sitestoinclude,'sitestoinclude')
         sitedata = fetchbetweendates('desktop','password',self.host,self.datefrom,self.dateto,self.sitestoinclude)  # filtering out locations where no data is found
-        print(sitedata,'sitedata')
         available_sites = [site[1] for site in sitedata]  # site 1 is the name
-        self.sitesincluded = list(OrderedDict.fromkeys(available_sites))
-        print(self.sitesincluded,'sitesincluded')  # dictionaries cant have any duplicates so useful here
+        self.sitesincluded = list(OrderedDict.fromkeys(available_sites))  # dictionaries cant have any duplicates so useful here
         if len(self.sitesincluded) == 0:
             self.anydata = False
         else:

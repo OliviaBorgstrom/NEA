@@ -56,10 +56,13 @@ class AddDialog(QDialog):
         for i in range(len(self.boxes)):
             self.boxes[i].setMaximum(100)  # cant have more than 100%
             self.editGroup.addWidget(self.boxes[i])
+        
+        self.checkIfDisable()
 
     def checkIfDisable(self):
         x = self.siteDropDown.currentIndex()
-        binnumbers = self.locationInfo[x][2:]
+        binnumbers = list(self.locationInfo[x][2:])
+        binnumbers.reverse()
         print(binnumbers)
         for i in range(len(binnumbers)):
             if binnumbers[i] == 0:
