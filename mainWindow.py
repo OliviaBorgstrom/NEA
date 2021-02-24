@@ -426,10 +426,10 @@ class viewTab(QWidget):  # done now other than some improvements
         self.rawlocations = fetchLocations(sysuser,syspassword,syshost)
         #self.rawlocations = [(each[1],str(each[4]),str(each[3]),str(each[2])) for each in fetchedlocations]
         self.locations = [location[1] for location in self.rawlocations]
-        print(self.locations)
+        #print(self.locations)
         self.siteIDs = [location[0] for location in self.rawlocations]
-        print(self.siteIDs)
-        print(self.locations)
+        #print(self.siteIDs)
+        #print(self.locations)
         self.sites.clear()
         self.locations.insert(0,'All')
         self.sites.addItems(self.locations)
