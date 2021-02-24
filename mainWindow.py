@@ -682,7 +682,7 @@ app.exec()
 #add a thing which shows up when someone trys to press edit without selecting anything first
 #need to make the page refresh when a dialog is closed - done but also refresesh on cancel or no changes
 
-#if it has 0 bins it shouldnt be editable at that site
+#if it has 0 bins it shouldnt be editable at that site <-
 #change the button in help to a cross? if possible
 
 #make delete button with an are you sure thing
@@ -691,16 +691,15 @@ app.exec()
 #currently only appends 30 items to the table <=== (need a view more button)
 
 #text shows up when someone presses choose saying they can choose when they click create
-#a quarter is 3 months, e.g jan,feb,march - april,may,june ect
 
 # add an 'All' Checkbox at a laterdate. right now it is not needed
 # select and deselect all sites easily
 
-# after creating the first report, shouldnt need to restart to see the compare button
+# after creating the first report, shouldnt need to restart to see the compare button <-
 # maybe make location and sitedata global so it can be used throughout the program rather than fetching every time??
 
 # archive entries into text files when a location is deleted
-# check the formatting of the text file to make sure that it is a compatible file
+# check the formatting of the text file to make sure that it is a compatible file <-
 # use %s %s parameters to check formatting
 
 # change the order of the date edit box on add tab

@@ -133,7 +133,7 @@ class Report(object):  # this init is way too long
         allplastic = [each.avr_plastic_usage for each in self.dataObjects]
         allpaper = [each.avr_paper_usage for each in self.dataObjects]
         allglass = [each.avr_glass_usage for each in self.dataObjects]
-        line_chart.add('Plastic',allplastic)  
+        line_chart.add('Plastic',allplastic)
         line_chart.add('Paper',allpaper)
         line_chart.add('Glass',allglass)
         line_chart.show_x_guides = True
@@ -144,7 +144,7 @@ class Report(object):  # this init is way too long
         
     def generatereportpath(self):
         self.reportTitle = str(self.datefrom) + '_to_' + str(self.dateto)
-        self.reportPath = 'Past_Reports/'+ self.reportTitle + '.pdf' # add a number depending on if there is another or not
+        self.reportPath = 'Past_Reports/' + self.reportTitle + '.pdf'  # add a number depending on if there is another or not
     
     def renderhtml(self,templatepath):
         if not self.anydata:
@@ -157,16 +157,16 @@ class Report(object):  # this init is way too long
             HTML(string=html_out,base_url=__file__).write_pdf(self.reportPath,stylesheets=["html_templates/style.css"])
             self.clearTemp()
     
-    def compareReports(self,path): #remember number of bins could change between the two
+    def compareReports(self,path):  # remember number of bins could change between the two
         sitesincluded = ['Boating Lake','Beeston Street','Asda Ellis Way']
         with open('Past_html/2020-11-01_to_2021-02-01.html') as fh:
             first_line = fh.readline()
             sitesInComparison = ((first_line[5:-5]).replace(', ',',')).replace('\'','')
             sitesInComparison = sitesInComparison.split(',')
             
-            l = set(sitesincluded)  # using sets to find the intersection and see if empty
-            f = set(sitesInComparison)
-            intsect = l.intersection(f)
+            includeset = set(sitesincluded)  # using sets to find the intersection and see if empty
+            compareset = set(sitesInComparison)
+            intsect = includeset.intersection(compareset)
     
             if not intsect:  # an empty set is intepreted as false
                 self.comparing = False  # return a helpful message
@@ -176,14 +176,14 @@ class Report(object):  # this init is way too long
         summary_boxes = self.extractSummaryBoxes(intsect)
 
     def extractSummaryBoxes(self,wanted):
-        ''' this algorithm goes till the start reading tag then breaks so that the 
+        ''' this algorithm goes till the start reading tag then breaks so that the
         next for loop can continue from the line that the last one left off at
         so as to not unnecessarily loop through too many lines'''
         arr_summary_box = []
         i = 0  # keeps track of which secondary list you are in
         with open('Past_html/2020-11-01_to_2021-02-01.html') as fh:
             for line in fh:
-                if line.strip() == '<!--_StartReading_-->': 
+                if line.strip() == '<!--_StartReading_-->':
                     break
             for line in fh:  # This keeps reading the file
                 if line.strip() == '<!--_StopReading_-->':
@@ -193,9 +193,9 @@ class Report(object):  # this init is way too long
                     if site in wanted:
                         arr_summary_box.append([site])
                         for line in fh:
-                            if line.strip() == '<div class=\"summary_box\" style=\"width:450px\">': 
+                            if line.strip() == '<div class=\"summary_box\" style=\"width:450px\">':
                                 break
-                        for line in fh: 
+                        for line in fh:
                             if line.strip() == '</div>':
                                 break
                             arr_summary_box[i].append(line.strip())
@@ -219,8 +219,8 @@ class Analysis(object):  # those which arent specifically monthly or weekly are 
         self.x_values = x_values
         self.y_values = y_values
         self.sitename = siteInfo[1]
-        self.numPlastic = siteInfo[2] 
-        self.numPaper = siteInfo[3] # number of bins of each type
+        self.numPlastic = siteInfo[2]
+        self.numPaper = siteInfo[3]  # number of bins of each type
         self.numGlass = siteInfo[4]
         self.entries = entries
         self.custom_style = Style(
@@ -233,7 +233,7 @@ class Analysis(object):  # those which arent specifically monthly or weekly are 
         self.generateMeanData()
         self.mean_chart = pygal.DateLine(x_label_rotation=25,style=self.custom_style)
         self.mean_chart.title = 'Mean site usage for ' + self.sitename
-        self.mean_pngtitle = 'temp/' +(self.sitename).replace(' ','_') + 'mean.png'
+        self.mean_pngtitle = 'temp/' + (self.sitename).replace(' ','_') + 'mean.png'
         self.generateAsPNG(self.mean_chart,[["Mean",self.mean_data]],self.mean_pngtitle)
 
         plastic = []
@@ -243,13 +243,13 @@ class Analysis(object):  # those which arent specifically monthly or weekly are 
             plastic.append((entry[0],entry[2]))
             paper.append((entry[0],entry[3]))
             glass.append((entry[0],entry[4]))
-        quicksort(plastic,0,len(plastic)-1)
-        quicksort(paper,0,len(paper)-1)
-        quicksort(glass,0,len(glass)-1)
+        quicksort(plastic,0,len(plastic) - 1)
+        quicksort(paper,0,len(paper) - 1)
+        quicksort(glass,0,len(glass) - 1)
 
         self.usage_chart = pygal.DateLine(x_label_rotation=25,style=self.custom_style)
         self.usage_chart.title = 'Usage over time for ' + self.sitename
-        self.usage_pngtitle = 'temp/' +(self.sitename).replace(' ','_') + '.png'
+        self.usage_pngtitle = 'temp/' + (self.sitename).replace(' ','_') + '.png'
         self.generateAsPNG(self.usage_chart,[["Plastic",plastic],["Paper",paper],["Glass",glass]],self.usage_pngtitle)
     
     def graphConfigure(self,graphobj):
@@ -277,7 +277,7 @@ class Analysis(object):  # those which arent specifically monthly or weekly are 
         
         self.avr_plastic_usage = countplastic // n
         self.avr_paper_usage = countpaper // n
-        self.avr_glass_usage = countglass // n 
+        self.avr_glass_usage = countglass // n
 
     def generateTotalMean(self):
         self.sum_each = [reduce((lambda x,y: x + y),[self.entries[i][2],self.entries[i][3],self.entries[i][4]]) for i in range(len(self.entries))]
@@ -289,7 +289,7 @@ class Analysis(object):  # those which arent specifically monthly or weekly are 
     def generateMeanData(self):
         self.generateTotalMean()
         self.mean_data = [[self.entries[i][0],self.meanNums[i]] for i in range(len(self.meanNums))]
-        quicksort(self.mean_data,0,len(self.mean_data)-1)
+        quicksort(self.mean_data,0,len(self.mean_data) - 1)
         self.mean()
     
     def getSiteProfile(self):
@@ -302,6 +302,10 @@ class weeklyAnalysis(Analysis):  # maybe add what percent it is at on the top of
         super(weeklyAnalysis, self).__init__(x_values, y_values, siteInfo, entries)
         self.generateTotalMean()
 
+    def normalDistributionOfWeeks(self):  # to get an avarage week i will use the normal distribution
+        pass
+        
+
     def initAllGraphs(self):
         self.x_values = [self.sitename]  # x value is different each time
         self.mean()
@@ -312,7 +316,7 @@ class weeklyAnalysis(Analysis):  # maybe add what percent it is at on the top of
         self.graphConfigure(self.main_chart)
         self.main_chart.add('Plastic', self.entries[0][2])
         self.main_chart.add('Paper', self.entries[0][3])
-        self.main_chart.add('Glass', self.entries[0][4]) 
+        self.main_chart.add('Glass', self.entries[0][4])
         self.main_chart.render_to_png(self.graph_path)
     
     #def initOtherValues(self):
@@ -322,7 +326,7 @@ class weeklyAnalysis(Analysis):  # maybe add what percent it is at on the top of
         sitevars = [self.totalMean,self.numPaper,self.numPlastic,self.numGlass,self.avr_paper_usage,self.avr_plastic_usage,self.avr_glass_usage]
         return [self.sitename,self.graph_path,sitevars]
 
-class monthlyAnalysis(Analysis): # maybe not needed?? # work on as extra
+class monthlyAnalysis(Analysis):  # maybe not needed?? # work on as extra
     def __init__(self, title, x_values, y_values, siteInfo, entries):
         super(monthlyAnalysis, self).__init__(title, x_values, y_values, siteInfo, entries)
 
@@ -379,6 +383,27 @@ class array_circ(object):
     def get_to_asint(self):
         return self.currentsliceindexes
     
-## maybe use a different method for the mean or just use the decimal?
-## default to bar chart if there is only one value
+# maybe use a different method for the mean or just use the decimal?
+# default to bar chart if there is only one value
 # need to generate an 'avarage' week value
+
+# from the other version before deleting:
+#when using this on another computer, need to find the path of the current file name to save there
+#callAnalysis(datetime.today().replace(day=1,month=1,hour=0, minute=0, second=0, microsecond=0),['Asda Ellis Way','Beeston Street','Pier','Boating lake'])
+#callAnalysis(date(2020,11,1),['Asda Ellis Way','Beeston Street','Pier','Boating lake'])  # maybe i can make an advanced customisability at some point
+# slightly problematically, pygal uses utc time by default -- might not cause any issues still
+
+# have a 'this month feature', 'past 30 days feature'
+# search the lists using re, regular expression
+# sites to include must be alpha
+
+#def generatereportpath(self,reporttype):    #  i think this would go into the report class
+#today = (str((datetime.today()))[:-7]).replace(' ','_')
+#filename = 'report' + '-' + date + '.pdf'
+#path = '/home/livi/NEA/Past_Reports/' +
+
+#need to sort the dates before appending so they are sorted in order
+
+#this week vs the average week
+
+#why does this run when i start it, do i need one of those if name = __main__
