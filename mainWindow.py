@@ -680,7 +680,6 @@ app.exec()
 #add a thing which shows up when someone trys to press edit without selecting anything first
 #need to make the page refresh when a dialog is closed - done but also refresesh on cancel or no changes
 
-#if it has 0 bins it shouldnt be editable at that site <-
 #change the button in help to a cross? if possible
 
 #make delete button with an are you sure thing

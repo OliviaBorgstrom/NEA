@@ -74,6 +74,20 @@ def fetchSitedata(user,password,host):  # still need windows option
     con.close()
     return rows
 
+def fetchSitedataOnLocation(user,password,host,siteIDs):
+    con = psycopg2.connect(database="livi", user=user, password=password,host=host)
+    #print("Database opened successfully")
+    cur = con.cursor()
+    parameters = '''SELECT entryid,date,name,avrglass,avrpaper,avrplastic FROM sitedata
+    INNER JOIN locations
+    ON locationid = siteid
+    WHERE locationid = %s
+    ORDER BY name ASC;'''
+    cur.execute(parameters,(siteIDs,))
+    rows = cur.fetchall()
+    con.close()
+    return rows
+
 def editExisting(user,password,host, inputdate, locationid, avrglass, avrpaper, avrplastic, entryID):
     con = psycopg2.connect(database="livi", user=user, password=password,host=host)
     #print("Database opened successfully")

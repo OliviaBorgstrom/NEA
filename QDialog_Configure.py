@@ -5,9 +5,7 @@ from PyQt5 import QtGui
 from are_you_sure_about_that import AreYouSure
 import re
 from QDialog_AddSite import AddSite
-from Database import fetchLocations
-from Database import deleteLocation
-from Database import addLocation
+from Database import fetchLocations,deleteLocation,addLocation,fetchSitedataOnLocation
 import sys
 
 class ConfigureDialog(QDialog):
@@ -127,13 +125,16 @@ class ConfigureDialog(QDialog):
         if not self.validRowSelected:
             return
         else:
-            areyousure = AreYouSure()
+            LocationSiteData = fetchSitedataOnLocation(self.user,self.password,self.host,self.selectedlocationID)
+            areyousure = AreYouSure(len(LocationSiteData) > 0,len(LocationSiteData))
             decide = areyousure.exec()
             if decide == 1:
                 print("deleted")
-                self.anythingChanged = True
-                deleteLocation(self.user,self.password,self.host,self.selectedlocationID)
-                self.refresh2()
+                if areyousure.archive:
+                    self.write_to_file(LocationSiteData)
+                #self.anythingChanged = True
+                #deleteLocation(self.user,self.password,self.host,self.selectedlocationID)
+                #self.refresh2()
             else:
                 return
 
