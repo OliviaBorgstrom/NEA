@@ -29,6 +29,11 @@ class Report(object):  # this init is way too long
 
         self.y_values = list(i for i in range(0, 110,10))
         self.num_months = (self.dateto.year - self.datefrom.year) * 12 + (self.dateto.month - self.datefrom.month)
+
+        if iscomparing[0]:
+            comparepath = 'Past_html/' + iscomparing[1] + '.html'
+            self.compareReports(comparepath)
+
         if self.num_months == 0:
             self.num_days = self.dateto.day - self.datefrom.day
             if self.num_days <= 7:
@@ -51,10 +56,6 @@ class Report(object):  # this init is way too long
             self.getAnalysisTemplate_vars()
             self.generateOverallSummary()
             self.renderhtml("html_templates/mainReport.html")
-        
-        if iscomparing[0]:
-            comparepath = 'Past_html/' + iscomparing[1] + '.html'
-            self.compareReports(comparepath)
 
     def initAnalysisObj(self, AnalysisClass):  # can add a thing at the bottom saying -> no data found for ...
         self.sitestoinclude = tuple(self.sitestoinclude)
@@ -73,6 +74,7 @@ class Report(object):  # this init is way too long
         #sitevars = [[each.totalMean,each.numPaper,each.numPlastic,each.numGlass,each.avr_paper_usage,each.avr_plastic_usage,each.avr_glass_usage] for each in self.dataObjects]
         #sites = [[self.dataObjects[i].sitename,self.dataObjects[i].usage_pngtitle,self.dataObjects[i].mean_pngtitle,sitevars[i]] for i in range(len(self.dataObjects))]
         sites = [each.getSiteProfile() for each in self.dataObjects]
+        print(sites)
         totalMeans = [each.totalMean for each in self.dataObjects]
         maxID = np.argmax(totalMeans)
         minID = np.argmin(totalMeans)
@@ -154,13 +156,12 @@ class Report(object):  # this init is way too long
             self.clearTemp()
     
     def compareReports(self,path):  # remember number of bins could change between the two
-        sitesincluded = ['Boating Lake','Beeston Street','Asda Ellis Way']
-        with open('Past_html/2020-11-01_to_2021-02-01.html') as fh:
+        with open(path) as fh:
             first_line = fh.readline()
             sitesInComparison = ((first_line[5:-5]).replace(', ',',')).replace('\'','')
             sitesInComparison = sitesInComparison.split(',')
             
-            includeset = set(sitesincluded)  # using sets to find the intersection and see if empty
+            includeset = set(self.sitesincluded)  # using sets to find the intersection and see if empty
             compareset = set(sitesInComparison)
             intsect = includeset.intersection(compareset)
     
@@ -169,15 +170,15 @@ class Report(object):  # this init is way too long
                 print('none in common')
                 return
 
-        summary_boxes = self.extractSummaryBoxes(intsect)
+        summary_boxes = self.extractSummaryBoxes(intsect,path)
 
-    def extractSummaryBoxes(self,wanted):
+    def pastextractSummaryBoxes(self,wanted,path):
         ''' this algorithm goes till the start reading tag then breaks so that the
         next for loop can continue from the line that the last one left off at
         so as to not unnecessarily loop through too many lines'''
         arr_summary_box = []
         i = 0  # keeps track of which secondary list you are in
-        with open('Past_html/2020-11-01_to_2021-02-01.html') as fh:
+        with open(path) as fh:
             for line in fh:
                 if line.strip() == '<!--_StartReading_-->':
                     break
@@ -197,6 +198,40 @@ class Report(object):  # this init is way too long
                             arr_summary_box[i].append(line.strip())
                         i += 1
         print(arr_summary_box)
+        return arr_summary_box
+
+    def extractSummaryBoxes(self,wanted,comparepath):  # get tips on how to improve this
+        print(wanted)
+        arr_summary_box = []
+        htmlfiles = []
+        comparison_name = self.reportTitle.replace('_',' ')
+        i = 0  # keeps track of which secondary list you are in
+        with open(comparepath) as fh:
+            for line in fh:
+                if line.strip() == '<!--_StartReading_-->':
+                    break
+            for line in fh:  # This keeps reading the file
+                if line.strip() == '<!--_StopReading_-->':
+                    break
+                if line[:6] == '<!--S_':
+                    site = (line[6:].replace('-->','')).rstrip('\n')
+                    if site in wanted:
+                        arr_summary_box.append([site])
+                        htmldir = ('temp/' + site + '.html').replace(' ','_')
+                        htmlfiles.append(htmldir)
+                        for line in fh:
+                            if line.strip() == '<div class=\"summary_box\" style=\"width:450px\">':
+                                break
+                        f = open(htmldir,'w')
+                        f.write('<b><u>Comparison report summary (' + comparison_name + ') </u><br></b>\n')
+                        for line in fh:
+                            if line.strip() == '</div>':
+                                break
+                            if not line.strip() == '<b>Number of bins:</b>' and not (line.strip())[:13] == '<!--IGNORE-->':
+                                f.write(line)
+                            arr_summary_box[i].append(line.strip())
+                        f.close()
+                        i += 1
         return arr_summary_box
 
     def writeTofile(self,html):
@@ -219,12 +254,20 @@ class Analysis(object):  # those which arent specifically monthly or weekly are 
         self.numPaper = siteInfo[3]  # number of bins of each type
         self.numGlass = siteInfo[4]
         self.entries = entries
+        self.find_compare_box()
         self.custom_style = Style(
             title_font_size=25,
             legend_font_size=18,
             value_font_size=15)
         self.initAllGraphs()
     
+    def find_compare_box(self):
+        comparebox = ('temp/' + self.sitename + '.html').replace(' ','_')
+        if os.path.isfile(comparebox):
+            self.compare_box_path = comparebox
+        else:
+            self.compare_box_path = None
+
     def initAllGraphs(self):
         self.generateMeanData()
         self.mean_chart = pygal.DateLine(x_label_rotation=25,style=self.custom_style)
@@ -290,7 +333,7 @@ class Analysis(object):  # those which arent specifically monthly or weekly are 
     
     def getSiteProfile(self):
         sitevars = [self.totalMean,self.numPaper,self.numPlastic,self.numGlass,self.avr_paper_usage,self.avr_plastic_usage,self.avr_glass_usage]
-        return [self.sitename,self.usage_pngtitle,self.mean_pngtitle,sitevars]
+        return [self.sitename,self.usage_pngtitle,self.mean_pngtitle,sitevars,self.compare_box_path]
 
 class weeklyAnalysis(Analysis):  # maybe add what percent it is at on the top of each bar chart
     def __init__(self, x_values, y_values, siteInfo, entries):

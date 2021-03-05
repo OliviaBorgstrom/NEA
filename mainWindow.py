@@ -682,8 +682,6 @@ app.exec()
 
 #change the button in help to a cross? if possible
 
-#make delete button with an are you sure thing
-
 #on the add dialog, put lables above the plastic peper glass ect  # do the same on the site dialog
 #currently only appends 30 items to the table <=== (need a view more button)
 
@@ -695,10 +693,11 @@ app.exec()
 # after creating the first report, shouldnt need to restart to see the compare button <-
 # maybe make location and sitedata global so it can be used throughout the program rather than fetching every time??
 
-# archive entries into text files when a location is deleted
 # check the formatting of the text file to make sure that it is a compatible file <-
 # use %s %s parameters to check formatting
 
 # change the order of the date edit box on add tab
 
 #need to make the timeframe select thing work
+
+#if self.anydata = False then make an error that there is no data
