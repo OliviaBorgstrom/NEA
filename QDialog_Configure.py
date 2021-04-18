@@ -134,9 +134,9 @@ class ConfigureDialog(QDialog):
                 print("deleted")
                 if areyousure.archive:
                     iswritten = list(map(self.write_to_file,LocationSiteData))
-                #self.anythingChanged = True
-                #deleteLocation(self.user,self.password,self.host,self.selectedlocationID)
-                #self.refresh2()
+                self.anythingChanged = True
+                deleteLocation(self.user,self.password,self.host,self.selectedlocationID)
+                self.refresh2()
             else:
                 return
     

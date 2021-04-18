@@ -131,6 +131,7 @@ class homeTab(QWidget):
             return
     
     def importPressed(self):
+        failed = False
         choose_txt = QFileDialog()
         choose_txt.setFileMode(QFileDialog.ExistingFiles)
         title = 'Choose file(s) to import'
@@ -144,30 +145,40 @@ class homeTab(QWidget):
                 data = fh.readline()
                 newEntry = data.split('~')
                 entries_str.append(newEntry)
-                forDatabase = [datetime.strptime(newEntry[0], '%Y-%m-%d'),int(newEntry[1]),
-                               int(newEntry[2]),int(newEntry[3]),int(newEntry[4])]
-                entries_database.append(forDatabase)
-                
-        if len(entries_str) == 1:
-            addTo(sysuser,syspassword,syshost,forDatabase[0],forDatabase[1],forDatabase[2], forDatabase[3], forDatabase[4])
-        elif len(entries_str) > 1:  # if it is longer than one i would like to confirm they want to add
-            locations = fetchLocations(sysuser,syspassword,syshost)
-            onlyIDs = [location[0] for location in locations]
-            for each in entries_str:  # better way to do this?/ is there any way of doing .index on only a specific index of each part of the 2D array
-                temp = each[1]
-                tempIndex = onlyIDs.index(int(each[1]))
-                each[1] = locations[tempIndex][1]
-            confirmWin = ConfirmImport(entries_str)
-            state = confirmWin.exec()
-            if state == 1:
-                for each in entries_database:
-                    addTo(sysuser, syspassword, syshost, each[0], each[1], each[2], each[3], each[4])
+                try:
+                    forDatabase = [datetime.strptime(newEntry[0], '%Y-%m-%d'),int(newEntry[1]),
+                                   int(newEntry[2]),int(newEntry[3]),int(newEntry[4])]
+                    entries_database.append(forDatabase)
+                except ValueError:
+                    errorwin = QMessageBox()
+                    errorwin.setIcon(QMessageBox.Critical)
+                    errorwin.setText('Unrecognised file format')
+                    errorwin.setWindowTitle("Error")
+                    errorwin.exec_()
+                    failed = True
+
+        if failed:
+            self.importPressed()
+        else:
+            if len(entries_str) == 1:
+                addTo(sysuser,syspassword,syshost,forDatabase[0],forDatabase[1],forDatabase[2], forDatabase[3], forDatabase[4])
+            elif len(entries_str) > 1:  # if it is longer than one i would like to confirm they want to add
+                locations = fetchLocations(sysuser,syspassword,syshost)
+                onlyIDs = [location[0] for location in locations]
+                for each in entries_str:  # better way to do this?/ is there any way of doing .index on only a specific index of each part of the 2D array
+                    temp = each[1]
+                    tempIndex = onlyIDs.index(int(each[1]))
+                    each[1] = locations[tempIndex][1]
+                confirmWin = ConfirmImport(entries_str)
+                state = confirmWin.exec()
+                if state == 1:
+                    for each in entries_database:
+                        addTo(sysuser, syspassword, syshost, each[0], each[1], each[2], each[3], each[4])
+                else:
+                    return
             else:
                 return
-        else:
-            return
-
-        self.tabobject.viewTab.refresh2()
+            self.tabobject.viewTab.refresh2()
         
 class createTab(QWidget):
     def __init__(self):

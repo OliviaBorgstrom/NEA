@@ -1,4 +1,5 @@
 from sorting_alg import quicksort
+from PyQt5.QtWidgets import QMessageBox
 from Database import fetchspecificLocations, fetchbetweendates
 from datetime import datetime, date, timedelta
 import pygal
@@ -13,6 +14,7 @@ import os
 
 class Report(object):  # this init is way too long
     def __init__(self,iscomparing,dateto,datefrom,filteredlocations,sitestoinclude,host):
+        self.failed = False
         self.iscomparing = iscomparing[0]
         self.dataObjects = []
         self.datefrom = datefrom
@@ -40,24 +42,35 @@ class Report(object):  # this init is way too long
                 #self.generatex_values_weekly()
                 self.x_values = 'not needed'
                 self.initAnalysisObj(weeklyAnalysis)
-                self.getAnalysisTemplate_vars()
-                self.renderhtml("html_templates/weeklyReport.html")
-                self.reportTitle = '(weekly)' + self.reportTitle
+                self.getAnalysisTemplate_vars(weeklyAnalysis)
+                if self.failed:
+                    return
+                else:
+                    self.renderhtml("html_templates/weeklyReport.html")
+                    self.reportTitle = '(weekly)' + self.reportTitle
             else:
                 #self.generatex_values_monthly()
                 #self.initAnalysisObj(monthlyAnalysis)
                 self.initAnalysisObj(Analysis)
-                self.getAnalysisTemplate_vars()
-                self.generateOverallSummary()
-                self.renderhtml("html_templates/mainReport.html")
+                self.getAnalysisTemplate_vars(Analysis)
+                if self.failed:
+                    return
+                else:
+                    self.generateOverallSummary()
+                    self.renderhtml("html_templates/mainReport.html")
         else:
             self.generatex_values()
             self.initAnalysisObj(Analysis)
-            self.getAnalysisTemplate_vars()
-            self.generateOverallSummary()
-            self.renderhtml("html_templates/mainReport.html")
+            self.getAnalysisTemplate_vars(Analysis)
+            if self.failed:
+                return
+            else:
+                self.generateOverallSummary()
+                self.renderhtml("html_templates/mainReport.html")
 
     def initAnalysisObj(self, AnalysisClass):  # can add a thing at the bottom saying -> no data found for ...
+        if AnalysisClass is weeklyAnalysis:
+            print('isweeklyAnalysis')
         self.sitestoinclude = tuple(self.sitestoinclude)
         sitedata = fetchbetweendates('desktop','password',self.host,self.datefrom,self.dateto,self.sitestoinclude)  # filtering out locations where no data is found
         available_sites = [site[1] for site in sitedata]  # site 1 is the name
@@ -69,19 +82,39 @@ class Report(object):  # this init is way too long
             for i in range(len(self.sitesincluded)):
                 indexofsite = self.sitestoinclude.index(self.sitesincluded[i])
                 self.dataObjects.append(AnalysisClass(self.x_values, self.y_values, self.filteredlocations[indexofsite],sitedata_split[i]))
+    
+    def generatePercentChart(self,percent,site,title,path):  # for the weekly analysis
+        chart = pygal.SolidGauge(inner_radius=0.70)
+        chart.value_formatter = lambda x: '{:.10g}%'.format(x)
+        chart.title = title + site
+        chart.__init__
+        chart.add(title, percent)
+        chart.render_to_png(path)
+        return path
         
-    def getAnalysisTemplate_vars(self):
-        #sitevars = [[each.totalMean,each.numPaper,each.numPlastic,each.numGlass,each.avr_paper_usage,each.avr_plastic_usage,each.avr_glass_usage] for each in self.dataObjects]
-        #sites = [[self.dataObjects[i].sitename,self.dataObjects[i].usage_pngtitle,self.dataObjects[i].mean_pngtitle,sitevars[i]] for i in range(len(self.dataObjects))]
+    def getAnalysisTemplate_vars(self,AnalysisClass):
         sites = [each.getSiteProfile() for each in self.dataObjects]
         print(sites)
         totalMeans = [each.totalMean for each in self.dataObjects]
-        maxID = np.argmax(totalMeans)
-        minID = np.argmin(totalMeans)
-        self.template_vars['mostUsed'] = [sites[maxID][0], totalMeans[maxID]]
-        self.template_vars['leastUsed'] = [sites[minID][0], totalMeans[minID]]
-        self.template_vars['ListOfSites'] = self.sitesincluded
-        self.template_vars['sites'] = sites
+        try: #incase there is no data to do it on
+            maxID = np.argmax(totalMeans)
+            minID = np.argmin(totalMeans)
+        except ValueError:
+            errorwin = QMessageBox()
+            errorwin.setIcon(QMessageBox.Critical)
+            errorwin.setText('Not enough data found, or inadequate dates selected')
+            errorwin.setWindowTitle("Error")
+            errorwin.exec_()
+            self.failed = True
+        else:
+            self.template_vars['mostUsed'] = [sites[maxID][0], totalMeans[maxID]]
+            self.template_vars['leastUsed'] = [sites[minID][0], totalMeans[minID]]
+            self.template_vars['ListOfSites'] = self.sitesincluded
+            self.template_vars['sites'] = sites
+
+            if AnalysisClass is weeklyAnalysis:
+                self.template_vars['mostUsedGraph'] = self.generatePercentChart(totalMeans[maxID], sites[maxID][0], 'Most Used Site - ', 'temp/max.png')
+                self.template_vars['leastUsedGraph'] = self.generatePercentChart(totalMeans[minID], sites[minID][0], 'Least Used Site - ', 'temp/min.png')
         
     def sublists(self,lookfor,lst,namesonly):  # sitedata has been alphabetically ordered by name
         newlist = []
@@ -259,7 +292,11 @@ class Analysis(object):  # those which arent specifically monthly or weekly are 
             title_font_size=25,
             legend_font_size=18,
             value_font_size=15)
-        self.initAllGraphs()
+
+        if len(self.entries) == 1:
+            self.initAllbarCharts()
+        else:
+            self.initAllGraphs()
     
     def find_compare_box(self):
         comparebox = ('temp/' + self.sitename + '.html').replace(' ','_')
@@ -267,6 +304,26 @@ class Analysis(object):  # those which arent specifically monthly or weekly are 
             self.compare_box_path = comparebox
         else:
             self.compare_box_path = None
+    
+    def initAllbarCharts(self):
+        self.x_values = [self.sitename]  # x value is different each time
+        self.usage_pngtitle = 'temp/' + (self.entries[0][1]).replace(' ','_') + '.png'
+        self.usage_chart = pygal.Bar()
+        self.usage_chart.title = 'Usage over time for ' + self.sitename
+        #self.graphConfigure(self.usage_chart)
+        self.generateAsPNG(self.usage_chart,[["Plastic",self.entries[0][2]],["Paper",self.entries[0][3]],["Glass",self.entries[0][4]]],self.usage_pngtitle)
+
+        self.generateTotalMean()
+        self.mean_chart = pygal.SolidGauge(inner_radius=0.70)
+        self.mean_chart.value_formatter = lambda x: '{:.10g}%'.format(x)
+        self.mean_chart.title = 'Mean site usage for ' + self.sitename
+        self.mean_pngtitle = 'temp/' + (self.sitename).replace(' ','_') + 'mean.png'
+        #self.graphConfigure(self.mean_chart)
+        self.generateAsPNG(self.mean_chart,[["Total Mean",self.totalMean]],self.mean_pngtitle)
+
+        self.avr_plastic_usage = self.entries[0][2]
+        self.avr_paper_usage = self.entries[0][3]
+        self.avr_glass_usage = self.entries[0][4]
 
     def initAllGraphs(self):
         self.generateMeanData()
@@ -341,29 +398,28 @@ class weeklyAnalysis(Analysis):  # maybe add what percent it is at on the top of
         super(weeklyAnalysis, self).__init__(x_values, y_values, siteInfo, entries)
         self.generateTotalMean()
 
-    def normalDistributionOfWeeks(self):  # to get an avarage week i will use the normal distribution
-        pass
+    #def initAllGraphs(self):
+        #self.x_values = [self.sitename]  # x value is different each time
+        #self.mean()
+        #if len(self.entries) > 1:
+        #self.entries = [[self.entries[0][0], self.entries[0][1], self.avr_plastic_usage, self.avr_paper_usage, self.avr_glass_usage]]
         
-
+        #self.main_chart = pygal.Bar()
+        #self.graphConfigure(self.main_chart)
+        #self.main_chart.add('Plastic', self.entries[0][2])
+        #self.main_chart.add('Paper', self.entries[0][3])
+        #self.main_chart.add('Glass', self.entries[0][4])
+        #self.main_chart.render_to_png(self.graph_path)
+    
     def initAllGraphs(self):
-        self.x_values = [self.sitename]  # x value is different each time
         self.mean()
         if len(self.entries) > 1:
             self.entries = [[self.entries[0][0], self.entries[0][1], self.avr_plastic_usage, self.avr_paper_usage, self.avr_glass_usage]]
-        
-        self.main_chart = pygal.Bar()
-        self.graphConfigure(self.main_chart)
-        self.main_chart.add('Plastic', self.entries[0][2])
-        self.main_chart.add('Paper', self.entries[0][3])
-        self.main_chart.add('Glass', self.entries[0][4])
-        self.main_chart.render_to_png(self.graph_path)
-    
-    #def initOtherValues(self):
-        #self.generateTotalMean()
+        self.initAllbarCharts()
 
     def getSiteProfile(self):
         sitevars = [self.totalMean,self.numPaper,self.numPlastic,self.numGlass,self.avr_paper_usage,self.avr_plastic_usage,self.avr_glass_usage]
-        return [self.sitename,self.graph_path,sitevars]
+        return [self.sitename,self.usage_pngtitle,self.mean_pngtitle,sitevars,self.compare_box_path]
 
 class monthlyAnalysis(Analysis):  # maybe not needed?? # work on as extra
     def __init__(self, title, x_values, y_values, siteInfo, entries):
