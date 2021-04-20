@@ -22,7 +22,7 @@ class AddSite(QDialog):
         self.layout.addWidget(self.buttonBox)
         self.setLayout(self.layout)
 
-    def initeditingBoxes(self): #dont allow blank, dont allow numbers
+    def initeditingBoxes(self):  # dont allow blank, dont allow numbers
         self.nameLine = QLineEdit()
         self.addglassbins = QSpinBox()
         self.addpaperbins = QSpinBox()

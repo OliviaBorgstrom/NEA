@@ -4,10 +4,10 @@ from PyQt5 import QtCore
 from PyQt5 import QtGui
 from are_you_sure_about_that import AreYouSure
 import re
+import os
+from datetime import datetime
 from QDialog_AddSite import AddSite
-from Database import fetchLocations
-from Database import deleteLocation
-from Database import addLocation
+from Database import fetchLocations,deleteLocation,addLocation,fetchSitedataOnLocation
 import sys
 
 class ConfigureDialog(QDialog):
@@ -103,8 +103,11 @@ class ConfigureDialog(QDialog):
                 self.showAnError('A site name should contain only letters, not numbers!')
             else:
                 self.anythingChanged = True
+                text = addsite.nameLine.text()
+                text = text.strip()
+                print(text)
                 addLocation(self.user,self.password,self.host,
-                            addsite.nameLine.text(),addsite.addglassbins.value(),
+                            text,addsite.addglassbins.value(),
                             addsite.addpaperbins.value(),addsite.addplasticbins.value())
                 self.refresh2()
         else:
@@ -124,15 +127,43 @@ class ConfigureDialog(QDialog):
         if not self.validRowSelected:
             return
         else:
-            areyousure = AreYouSure()
+            LocationSiteData = fetchSitedataOnLocation(self.user,self.password,self.host,self.selectedlocationID)
+            areyousure = AreYouSure(len(LocationSiteData) > 0,len(LocationSiteData))
             decide = areyousure.exec()
             if decide == 1:
                 print("deleted")
+                if areyousure.archive:
+                    iswritten = list(map(self.write_to_file,LocationSiteData))
                 self.anythingChanged = True
                 deleteLocation(self.user,self.password,self.host,self.selectedlocationID)
                 self.refresh2()
             else:
                 return
+    
+    def write_to_file(self,data):
+        str_date = datetime.strftime(data[1], '%Y-%m-%d')
+        writeline = '{0}~{1}~{2}~{3}~{4}'.format(str_date,data[2],str(data[3]),str(data[4]),str(data[5]))
+        print(writeline)
+
+        # make sure the name is unique, otherwise add a number
+        counter = 1
+        filepath = 'archive/' + str(data[2]).replace(' ','') + '_' + str_date + '{}.txt'
+        while os.path.isfile(filepath.format('(' + str(counter) + ')')):
+            counter += 1
+        if not counter == 1:
+            filepath = filepath.format('(' + str(counter) + ')')
+        else:
+            if os.path.isfile(filepath.replace('{}','')):
+                filepath = filepath.format('(1)')
+            else:
+                filepath = filepath.replace('{}','')
+        
+        print(filepath)
+
+        with open(filepath,'a+') as fh:
+            fh.write(writeline)
+        
+        return True
 
     def refresh2(self):
         fetchedlocations = fetchLocations(self.user,self.password,self.host)
