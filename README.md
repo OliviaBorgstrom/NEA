@@ -1,4 +1,4 @@
-This repository was created as part of my Computer Science A-level NEA.
+This repository was created as part of my Computer Science A-level NEA, on a seperate GitHub account. Which I have now imported to here.
 It is a data manager and user interface for the North East Lincs council which allows the user to keep track of recycling center usage,
 add new entries to the database, remove from the database and generate PDF reports from the data contained in the database.
 
